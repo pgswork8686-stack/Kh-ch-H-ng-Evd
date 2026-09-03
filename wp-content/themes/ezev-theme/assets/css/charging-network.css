@@ -1,0 +1,245 @@
+﻿/**
+ * Charging Network Page Styles
+ * Compliance: Checkpoint 4.1E & UI Reference "Mạng lưới.png"
+ */
+
+/* Hero Section */
+.ezev-network-hero {
+  background-color: var(--ezev-color-dark-900);
+  color: #FFFFFF;
+  padding-top: var(--ezev-space-12);
+  padding-bottom: var(--ezev-space-16);
+  position: relative;
+  overflow: hidden;
+}
+
+.ezev-network-title {
+  color: #FFFFFF;
+  font-size: clamp(2.25rem, 4vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: var(--ezev-space-2);
+}
+
+.ezev-network-subtitle {
+  color: #94A3B8;
+  font-size: 1.125rem;
+  margin-bottom: var(--ezev-space-8);
+  max-width: 600px;
+}
+
+/* Macro Map & Search Section */
+.ezev-network-map-section {
+  padding: var(--ezev-space-12) 0;
+  background-color: #FFFFFF;
+}
+
+.ezev-network-map-box {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-2xl);
+  box-shadow: var(--ezev-shadow-lg);
+  overflow: hidden;
+}
+
+.ezev-network-map-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .ezev-network-map-grid {
+    grid-template-columns: 320px 1fr 320px;
+  }
+}
+
+/* Overview KPIs 5-col */
+.ezev-network-kpis-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #F8FAFC;
+  text-align: center;
+}
+
+.ezev-network-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ezev-space-4);
+  margin-top: var(--ezev-space-10);
+}
+
+@media (min-width: 768px) {
+  .ezev-network-kpis-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ezev-network-kpis-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.ezev-network-kpi-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-6) var(--ezev-space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ezev-network-kpi-icon {
+  font-size: 2.25rem;
+  margin-bottom: var(--ezev-space-2);
+  color: var(--ezev-color-primary);
+}
+
+.ezev-network-kpi-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--ezev-color-dark-900);
+}
+
+.ezev-network-kpi-lbl {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ezev-color-gray-700);
+  margin-top: 4px;
+}
+
+.ezev-network-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--ezev-color-text-muted);
+  margin-top: 2px;
+}
+
+/* Regional Expansion Section */
+.ezev-regional-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #FFFFFF;
+}
+
+.ezev-regional-container {
+  background: var(--ezev-color-dark-900);
+  border-radius: var(--ezev-radius-2xl);
+  padding: var(--ezev-space-10);
+  color: #FFFFFF;
+}
+
+.ezev-regional-header {
+  margin-bottom: var(--ezev-space-8);
+}
+
+.ezev-regional-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-6);
+}
+
+@media (min-width: 768px) {
+  .ezev-regional-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ezev-regional-card {
+  background: var(--ezev-color-dark-800);
+  border: 1px solid var(--ezev-color-dark-600);
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-6);
+  display: flex;
+  flex-direction: column;
+}
+
+.ezev-regional-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ezev-space-4);
+  padding-bottom: var(--ezev-space-3);
+  border-bottom: 1px solid var(--ezev-color-dark-600);
+}
+
+.ezev-regional-country-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ezev-regional-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ezev-space-3);
+  margin-bottom: var(--ezev-space-4);
+}
+
+.ezev-regional-metric-item strong {
+  display: block;
+  font-size: 1.25rem;
+  color: #FFFFFF;
+}
+
+.ezev-regional-metric-item span {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  text-transform: uppercase;
+}
+
+.ezev-regional-cities {
+  font-size: 0.8125rem;
+  color: #94A3B8;
+  margin-top: auto;
+  line-height: 1.5;
+}
+
+/* Featured Stations Carousel / Grid */
+.ezev-featured-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #F8FAFC;
+}
+
+.ezev-featured-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-6);
+  margin-top: var(--ezev-space-8);
+}
+
+@media (min-width: 640px) {
+  .ezev-featured-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ezev-featured-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Zappy Assistant CTA Box */
+.ezev-assistant-box {
+  background: linear-gradient(135deg, #73B72A 0%, #5A9420 100%);
+  border-radius: var(--ezev-radius-2xl);
+  padding: var(--ezev-space-8) var(--ezev-space-10);
+  color: #090D1A;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ezev-space-6);
+  align-items: center;
+  text-align: center;
+  margin: var(--ezev-space-16) 0;
+}
+
+@media (min-width: 768px) {
+  .ezev-assistant-box {
+    flex-direction: row;
+    text-align: left;
+    justify-content: space-between;
+  }
+}
