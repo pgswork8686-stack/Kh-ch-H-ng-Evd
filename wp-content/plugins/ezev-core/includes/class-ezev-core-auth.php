@@ -31,19 +31,20 @@ final class EZEV_Core_Auth {
     public static function user_access(int $user_id): array {
         global $wpdb;
         $members = $wpdb->get_results($wpdb->prepare(
-            "SELECT m.*, o.org_code, o.name AS organization_name, o.type AS organization_type
+            "SELECT m.membership_id, m.organization_ref AS organization_id, m.user_id, m.role_key, m.status,
+                    o.name AS organization_name, o.type AS organization_type
              FROM " . EZEV_Core_DB::table('org_members') . " m
-             INNER JOIN " . EZEV_Core_DB::table('organizations') . " o ON o.id=m.organization_id
+             INNER JOIN " . EZEV_Core_DB::table('organizations') . " o ON o.organization_id=m.organization_ref
              WHERE m.user_id=%d AND m.status='active'", $user_id
         ), ARRAY_A) ?: [];
         foreach ($members as &$member) {
-            $member_id = (int) $member['id'];
-            $member['site_ids'] = array_map('intval', $wpdb->get_col($wpdb->prepare(
-                "SELECT site_id FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE member_id=%d", $member_id
-            )) ?: []);
-            $member['station_post_ids'] = array_map('intval', $wpdb->get_col($wpdb->prepare(
-                "SELECT station_post_id FROM " . EZEV_Core_DB::table('member_station_access') . " WHERE member_id=%d", $member_id
-            )) ?: []);
+            $membership_id = (string) $member['membership_id'];
+            $member['site_ids'] = array_values(array_filter(array_map('strval', $wpdb->get_col($wpdb->prepare(
+                "SELECT site_ref FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE membership_ref=%s", $membership_id
+            )) ?: [])));
+            $member['station_ids'] = array_values(array_filter(array_map('strval', $wpdb->get_col($wpdb->prepare(
+                "SELECT station_id FROM " . EZEV_Core_DB::table('member_station_access') . " WHERE membership_ref=%s", $membership_id
+            )) ?: [])));
         }
         unset($member);
         return $members;
@@ -57,8 +58,8 @@ final class EZEV_Core_Auth {
         $allowed = [];
         global $wpdb;
         foreach ($access as $membership) {
-            if (in_array($membership['role_key'], ['owner','admin'], true) && empty($membership['site_ids']) && empty($membership['station_post_ids'])) {
-                $org_id = (int) $membership['organization_id'];
+            if (in_array($membership['role_key'], ['owner','admin'], true) && empty($membership['site_ids']) && empty($membership['station_ids'])) {
+                $org_id = (string) $membership['organization_id'];
                 $ids = get_posts([
                     'post_type' => EZEV_Core_Stations::POST_TYPE,
                     'post_status' => 'publish', 'numberposts' => -1, 'fields' => 'ids',
@@ -74,7 +75,10 @@ final class EZEV_Core_Auth {
                 ]);
                 $allowed = array_merge($allowed, array_map('intval', $ids));
             }
-            $allowed = array_merge($allowed, $membership['station_post_ids']);
+            foreach ($membership['station_ids'] as $station_id) {
+                $post_id = EZEV_Core_Stations::find_by_station_id($station_id);
+                if ($post_id) { $allowed[] = $post_id; }
+            }
         }
         return array_values(array_unique(array_map('intval', $allowed)));
     }

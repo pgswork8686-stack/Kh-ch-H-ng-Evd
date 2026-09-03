@@ -1,5 +1,5 @@
 === EZEV Core ===
-Version: 4.0.1
+Version: 4.1.0
 
 Production-ready master data, identity/access and Google Maps foundation for EZEV/EVD. Includes 60 clearly-marked demo station records for local testing.
 

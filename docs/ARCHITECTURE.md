@@ -22,7 +22,7 @@ WordPress is currently the system host, not the domain contract. Clients consume
 
 Core owns WordPress identity integration, organizations, memberships, sites, stations, resource scopes, saved stations, invitations, audit events, Maps configuration, and `/wp-json/ezev/v1`.
 
-Stations currently use the `ezev_station` custom post type with normalized metadata. `station_id` is the public identity; the current use of post IDs in saved/scope tables is transitional debt.
+Stations currently use the `ezev_station` custom post type with normalized metadata. `organization_id`, `site_id`, `membership_id`, and `station_id` are stable business identifiers. Numeric database keys and station post IDs remain internal compatibility columns during migration and must not enter new public contracts.
 
 ## Operations
 
@@ -49,3 +49,4 @@ Core owns the Google Maps API key, Map ID, country, center, zoom, and connection
 - 2026-09-03: imported the inspected plugin code into the required repository layout without importing the archived v1 theme, because frontend ownership and current branch state could not be verified.
 - 2026-09-03: documented current post-ID relationships as transitional rather than silently changing contracts or data.
 - 2026-09-03: retained the existing separate `ezev-ops/v1` namespace as observed behavior; convergence under a single gateway requires a versioned contract decision.
+- 2026-09-03: Core 4.1.0 introduces independent schema version 1.1.0 and dual-key migration. Stable references are authoritative; legacy numeric references remain temporarily for safe upgrades.

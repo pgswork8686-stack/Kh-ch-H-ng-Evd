@@ -53,8 +53,11 @@ final class EZEV_Core_Stations {
         foreach (['latitude','longitude','max_power_kw'] as $key) {
             if (isset($source[$key])) { update_post_meta($post_id, '_ezev_' . $key, (float) $source[$key]); }
         }
-        foreach (['ports_total','ports_available_manual','organization_id','site_id'] as $key) {
+        foreach (['ports_total','ports_available_manual'] as $key) {
             if (isset($source[$key])) { update_post_meta($post_id, '_ezev_' . $key, absint($source[$key])); }
+        }
+        foreach (['organization_id','site_id'] as $key) {
+            if (isset($source[$key])) { update_post_meta($post_id, '_ezev_' . $key, EZEV_Core_Domain::normalize_id((string) wp_unslash($source[$key]))); }
         }
         foreach (['connector_types','amenities'] as $key) {
             $value = isset($source[$key]) ? $source[$key] : [];
@@ -185,8 +188,8 @@ final class EZEV_Core_Stations {
             'amenities' => (array) $get('amenities', []),
             'data_mode' => (string) $get('data_mode', 'manual'),
             'is_demo' => (bool) $get('is_demo', false),
-            'organization_id' => (int) $get('organization_id', 0),
-            'site_id' => (int) $get('site_id', 0),
+            'organization_id' => (string) $get('organization_id'),
+            'site_id' => (string) $get('site_id'),
             'public_notes' => (string) $get('public_notes', ''),
             'url' => get_permalink($post),
             'thumbnail' => get_the_post_thumbnail_url($post, 'medium') ?: '',

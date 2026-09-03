@@ -11,6 +11,6 @@ This repository is the source of truth for the EZEV EV-charging platform. WordPr
 
 ## Current baseline
 
-The imported plugin source declares version `4.0.1`. The source packages were named `v4.0.2`, which is a packaging mismatch and must be resolved before a release. See [PROJECT-CONTEXT.md](docs/PROJECT-CONTEXT.md).
+The audited import declared version `4.0.1` although its packages were named `v4.0.2`. Core development continues from synchronized source version `4.1.0` with database schema version `1.1.0`. See [PROJECT-CONTEXT.md](docs/PROJECT-CONTEXT.md).
 
 Development happens on `codex/core-system`, integration on `integration/ezev-v1`, and stable releases on `main`. Never commit feature work directly to `main`.

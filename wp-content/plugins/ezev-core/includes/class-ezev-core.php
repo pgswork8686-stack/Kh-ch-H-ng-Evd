@@ -45,6 +45,7 @@ final class EZEV_Core {
     }
 
     public function boot(): void {
+        EZEV_Core_DB::maybe_upgrade();
         EZEV_Core_Stations::init();
         EZEV_Core_Auth::init();
         EZEV_Core_REST::init();
