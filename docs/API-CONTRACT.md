@@ -85,31 +85,31 @@ Requires login. Clears the WordPress session and returns a login redirect.
 ### Core Entity CRUD & Access Management
 
 #### Organizations: `/wp-json/ezev/v1/organizations`
-- `GET /organizations`: List organizations with filtering (`type`, `status`). Returns `{ "organizations": [...] }`.
+- `GET /organizations`: List organizations scoped to the authenticated caller's active memberships. Non-members receive `[]`. Only administrators or users with `ezev_view_all_stations` can view all organizations.
 - `POST /organizations`: Requires `ezev_manage_organizations`. Creates an organization with stable `organization_id`. Returns 201.
-- `GET /organizations/{organization_id}`: Detail of an organization.
-- `PUT|PATCH /organizations/{organization_id}`: Requires `ezev_manage_organizations`. Update organization.
-- `DELETE /organizations/{organization_id}`: Soft/hard delete organization.
+- `GET /organizations/{organization_id}`: Detail of an organization (403 forbidden if not member or admin).
+- `PUT|PATCH /organizations/{organization_id}`: Requires `can_manage_organization`. Update organization.
+- `DELETE /organizations/{organization_id}`: Safe delete. Rejects with 409 `resource_has_dependencies` if active sites, stations, or memberships exist.
 
 #### Sites: `/wp-json/ezev/v1/sites`
-- `GET /sites`: List sites, filterable by `organization_id`. Returns `{ "sites": [...] }`.
-- `POST /sites`: Requires `ezev_manage_organizations` or org admin. Creates site with stable `site_id`. Returns 201.
-- `GET /sites/{site_id}`: Site detail.
-- `PUT|PATCH /sites/{site_id}`: Update site.
-- `DELETE /sites/{site_id}`: Delete site.
+- `GET /sites`: List sites scoped to caller's memberships/access. Returns `{ "sites": [...] }`.
+- `POST /sites`: Requires `can_manage_organization` for the target organization. Creates site with stable `site_id`. Returns 201.
+- `GET /sites/{site_id}`: Site detail (403 forbidden if outside caller's scope).
+- `PUT|PATCH /sites/{site_id}`: Requires `can_manage_site`.
+- `DELETE /sites/{site_id}`: Safe delete. Rejects with 409 `resource_has_dependencies` if active stations are attached.
 
 #### Memberships & Scopes: `/wp-json/ezev/v1/organizations/{organization_id}/members`
-- `GET /organizations/{organization_id}/members`: List organization members.
-- `POST /organizations/{organization_id}/members`: Assign member with `user_id`, `role_key`.
+- `GET /organizations/{organization_id}/members`: List organization members. Caller must be an org member. Member emails are masked unless caller is manager.
+- `POST /organizations/{organization_id}/members`: Requires `can_manage_membership`. Assign member with `user_id`, `role_key`.
 - `PUT|PATCH /organizations/{organization_id}/members/{membership_id}`: Update member role or status.
-- `DELETE /organizations/{organization_id}/members/{membership_id}`: Remove member.
-- `POST /memberships/{membership_id}/sites`: Grant site-level scope.
-- `POST /memberships/{membership_id}/stations`: Grant station-level scope.
+- `DELETE /organizations/{organization_id}/members/{membership_id}`: Remove member and cleanup associated site/station scopes.
+- `POST /memberships/{membership_id}/sites`: Grant site-level scope. Strictly enforces that the site belongs to the member's organization (cross-org assignment returns 422 `cross_organization_mismatch`).
+- `POST /memberships/{membership_id}/stations`: Grant station-level scope. Strictly enforces that the station belongs to the member's organization (cross-org assignment returns 422 `cross_organization_mismatch`).
 
 #### Invitations Lifecycle: `/wp-json/ezev/v1/organizations/{organization_id}/invitations`
 - `POST /organizations/{organization_id}/invitations`: Create an invitation token with email, role, and 7-day TTL.
 - `GET /invitations/{token}`: Validate invitation token publicly before acceptance.
-- `POST /invitations/{token}/accept`: Authenticated user accepts invitation, creating an active membership.
+- `POST /invitations/{token}/accept`: Authenticated user accepts invitation. Verifies that the recipient email matches the user account email (403 `email_mismatch`). Uses atomic single-use query to prevent concurrent double-claim race conditions (409 `invitation_already_claimed`).
 - `POST /invitations/{id}/revoke`: Cancel a pending invitation.
 
 ## Operations namespace: `/wp-json/ezev-ops/v1`
@@ -121,9 +121,18 @@ Response wrapper:
 {
   "data": [...],
   "pagination": { "page": 1, "per_page": 50, "total": 120, "total_pages": 3 },
-  "meta": { "source": "Demo Provider", "fetched_at": "2026-09-03T04:20:00Z", "freshness_seconds": 12 }
+  "meta": {
+    "source": "Manual Provider",
+    "data_source": "manual",
+    "data_mode": "manual",
+    "last_updated": "2026-09-03 11:30:00",
+    "fetched_at": "2026-09-03 11:45:00",
+    "freshness_seconds": 900,
+    "is_stale": false
+  }
 }
 ```
+*Note: Manual and Demo providers are never considered realtime.*
 
 - `GET /overview`: High-level aggregate KPIs.
 - `GET /chargers`: List chargers with filters.

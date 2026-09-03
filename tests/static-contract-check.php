@@ -130,6 +130,61 @@ check_file_contains_regex(
     "Operations Sync registers scheduled receipt cleanup event"
 );
 
+// GATE 3.1: Reusable Core Authorizer & Tenancy Integrity
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php',
+    '/function\s+can_read_organization/',
+    'Core Auth defines reusable can_read_organization authorizer'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php',
+    '/function\s+can_manage_organization/',
+    'Core Auth defines reusable can_manage_organization authorizer'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php',
+    '/function\s+can_read_site/',
+    'Core Auth defines reusable can_read_site authorizer'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/cross_organization_mismatch/',
+    'Core REST enforces cross_organization_mismatch on Site/Station scope assignment'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/resource_has_dependencies/',
+    'Core REST enforces resource_has_dependencies on Organization/Site safe deletion'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/email_mismatch/',
+    'Core REST verifies recipient email matching on invitation acceptance'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/invitation_already_claimed/',
+    'Core REST implements atomic single-use claim against race conditions'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    '/calculate_freshness/',
+    'Operations REST implements calculate_freshness with real storage timestamps'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    '/data_mode/',
+    'Operations REST returns data_mode metadata distinguishing manual/demo from API'
+);
+
 // Verify that ezev_view_internal is NOT used as bypass in allowed_station_post_ids
 $authFile = 'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php';
 if (file_exists($authFile)) {

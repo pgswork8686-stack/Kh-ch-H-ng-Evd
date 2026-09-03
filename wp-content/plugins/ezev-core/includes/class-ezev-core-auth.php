@@ -115,4 +115,100 @@ final class EZEV_Core_Auth {
         }
         return false;
     }
+
+    /**
+     * GATE 3.1: Reusable Core Authorizer
+     */
+    public static function user_organization_ids(int $user_id): array {
+        if ($user_id <= 0) return [];
+        $access = self::user_access($user_id);
+        $orgs = [];
+        foreach ($access as $m) {
+            if (!empty($m['organization_id'])) {
+                $orgs[] = (string) $m['organization_id'];
+            }
+        }
+        return array_values(array_unique($orgs));
+    }
+
+    public static function can_read_organization(int $user_id, string $org_ref): bool {
+        if ($user_id <= 0) return false;
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_view_all_stations')) {
+            return true;
+        }
+        $org_ref = EZEV_Core_Domain::normalize_id($org_ref);
+        return in_array($org_ref, self::user_organization_ids($user_id), true);
+    }
+
+    public static function can_manage_organization(int $user_id, string $org_ref): bool {
+        if ($user_id <= 0) return false;
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_manage_organizations')) {
+            return true;
+        }
+        $org_ref = EZEV_Core_Domain::normalize_id($org_ref);
+        foreach (self::user_access($user_id) as $m) {
+            if (($m['organization_id'] ?? '') === $org_ref && in_array($m['role_key'] ?? '', ['owner', 'admin'], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function user_allowed_site_ids(int $user_id): ?array {
+        if ($user_id <= 0) return [];
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_view_all_stations')) {
+            return null; // All sites
+        }
+        global $wpdb;
+        $sites = [];
+        $sitesTable = EZEV_Core_DB::table('sites');
+        foreach (self::user_access($user_id) as $m) {
+            $org_ref = (string) ($m['organization_id'] ?? '');
+            if (in_array($m['role_key'], ['owner', 'admin'], true) && empty($m['site_ids'])) {
+                // Org owner/admin without explicit site filter gets all sites in organization
+                $allOrgSites = $wpdb->get_col($wpdb->prepare("SELECT site_id FROM $sitesTable WHERE organization_ref = %s", $org_ref));
+                $sites = array_merge($sites, $allOrgSites ?: []);
+            }
+            if (!empty($m['site_ids'])) {
+                $sites = array_merge($sites, $m['site_ids']);
+            }
+        }
+        return array_values(array_unique(array_filter($sites)));
+    }
+
+    public static function can_read_site(int $user_id, string $site_ref): bool {
+        if ($user_id <= 0) return false;
+        $allowed = self::user_allowed_site_ids($user_id);
+        if ($allowed === null) return true;
+        $site_ref = EZEV_Core_Domain::normalize_id($site_ref);
+        return in_array($site_ref, $allowed, true);
+    }
+
+    public static function can_manage_site(int $user_id, string $site_ref): bool {
+        if ($user_id <= 0) return false;
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_manage_organizations')) {
+            return true;
+        }
+        $site = EZEV_Core_Domain::site_by_id($site_ref);
+        if (!$site) return false;
+        $org_ref = (string) ($site['organization_ref'] ?? '');
+        if (self::can_manage_organization($user_id, $org_ref)) {
+            return true;
+        }
+        $site_ref = EZEV_Core_Domain::normalize_id($site_ref);
+        foreach (self::user_access($user_id) as $m) {
+            if ($m['role_key'] === 'site_manager' && in_array($site_ref, $m['site_ids'], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function can_manage_membership(int $user_id, string $org_ref): bool {
+        if ($user_id <= 0) return false;
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_manage_access')) {
+            return true;
+        }
+        return self::can_manage_organization($user_id, $org_ref);
+    }
 }

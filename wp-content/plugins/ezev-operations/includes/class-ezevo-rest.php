@@ -84,10 +84,40 @@ final class EZEV_Operations_REST {
         }
         $user = wp_get_current_user();
         $roles = (array) $user->roles;
-        // Ops, Technical, and Business roles can manage maintenance
-        if (array_intersect($roles, ['ezev_internal_ops', 'ezev_internal_technical', 'ezev_business'])) {
+
+        // Customer strictly 403
+        if (in_array('ezev_customer', $roles, true) && !in_array('administrator', $roles, true)) {
+            return new WP_Error('rest_forbidden', 'Forbidden: customers cannot access operations.', ['status' => 403]);
+        }
+
+        // Investor strictly 403
+        if (in_array('ezev_investor', $roles, true) && !in_array('administrator', $roles, true)) {
+            return new WP_Error('rest_forbidden', 'Forbidden: investors cannot perform operational mutations.', ['status' => 403]);
+        }
+
+        // Internal Ops and Technical WP roles have technical mutation privilege
+        if (in_array('ezev_internal_ops', $roles, true) || in_array('ezev_internal_technical', $roles, true)) {
             return true;
         }
+
+        // GATE 3.1: For Business and Partner roles, enforce membership role_key:
+        // Must be owner, admin, operations, or site_manager. Viewer and finance are forbidden.
+        if (class_exists('EZEV_Core_Auth')) {
+            $access = EZEV_Core_Auth::user_access($user->ID);
+            $has_mutation_role = false;
+            foreach ($access as $m) {
+                $rk = (string) ($m['role_key'] ?? '');
+                if (in_array($rk, ['owner', 'admin', 'operations', 'site_manager'], true)) {
+                    $has_mutation_role = true;
+                    break;
+                }
+            }
+            if ($has_mutation_role) {
+                return true;
+            }
+            return new WP_Error('rest_forbidden', 'Forbidden: viewer and finance roles cannot perform operational mutations.', ['status' => 403]);
+        }
+
         return new WP_Error('rest_forbidden', 'Forbidden: insufficient privileges for maintenance operations.', ['status' => 403]);
     }
 
@@ -273,8 +303,39 @@ final class EZEV_Operations_REST {
         return ["$col IN ('$escaped')", []];
     }
 
-    private static function wrap_collection(string $legacy_key, array $serialized_rows, int $total, int $page, int $per_page): array {
+    private static function calculate_freshness(string $table = 'chargers', string $time_col = 'updated_at'): array {
+        global $wpdb;
         $p = EZEV_Operations_Provider_Manager::active();
+        $key = $p->key();
+        $mode = ($key === 'demo') ? 'demo' : (($key === 'manual') ? 'manual' : 'api');
+
+        $tableName = EZEV_Operations_DB::table($table);
+        $last_updated = $wpdb->get_var("SELECT MAX($time_col) FROM $tableName");
+        if (!$last_updated) {
+            $last_updated = current_time('mysql', true);
+        }
+
+        $now_ts = current_time('timestamp', true);
+        $up_ts = strtotime($last_updated) ?: $now_ts;
+        $freshness_seconds = max(0, $now_ts - $up_ts);
+
+        // Manual or Demo providers are NEVER considered realtime.
+        // API providers are marked stale if no update within 10 minutes (600s).
+        $is_stale = ($mode === 'api') && ($freshness_seconds > 600);
+
+        return [
+            'source'            => $p->label(),
+            'data_source'       => $key,
+            'data_mode'         => $mode,
+            'last_updated'      => $last_updated,
+            'fetched_at'        => current_time('mysql', true),
+            'freshness_seconds' => $freshness_seconds,
+            'is_stale'          => $is_stale,
+        ];
+    }
+
+    private static function wrap_collection(string $legacy_key, array $serialized_rows, int $total, int $page, int $per_page, string $table = 'chargers', string $time_col = 'updated_at'): array {
+        $meta = self::calculate_freshness($table, $time_col);
         return [
             $legacy_key  => $serialized_rows,
             'data'       => $serialized_rows,
@@ -284,11 +345,7 @@ final class EZEV_Operations_REST {
                 'total'       => $total,
                 'total_pages' => $per_page > 0 ? (int) ceil($total / $per_page) : 1,
             ],
-            'meta'       => [
-                'source'            => $p->label(),
-                'fetched_at'        => current_time('mysql', true),
-                'freshness_seconds' => 0,
-            ],
+            'meta'       => $meta,
         ];
     }
 
@@ -362,7 +419,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_connector'], $rows);
-        return rest_ensure_response(self::wrap_collection('connectors', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('connectors', $serialized, $total, $page, $per_page, 'connectors', 'updated_at'));
     }
 
     public static function connector(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -407,7 +464,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_session'], $rows);
-        return rest_ensure_response(self::wrap_collection('sessions', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('sessions', $serialized, $total, $page, $per_page, 'sessions', 'started_at'));
     }
 
     public static function session(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -452,7 +509,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_energy'], $rows);
-        return rest_ensure_response(self::wrap_collection('energy', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('energy', $serialized, $total, $page, $per_page, 'energy', 'recorded_at'));
     }
 
     public static function alerts(WP_REST_Request $request): WP_REST_Response {
@@ -480,7 +537,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_alert'], $rows);
-        return rest_ensure_response(self::wrap_collection('alerts', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('alerts', $serialized, $total, $page, $per_page, 'alerts', 'occurred_at'));
     }
 
     public static function alert(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -586,7 +643,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_maintenance'], $rows);
-        return rest_ensure_response(self::wrap_collection('maintenance', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('maintenance', $serialized, $total, $page, $per_page, 'maintenance', 'updated_at'));
     }
 
     public static function maintenance_ticket(WP_REST_Request $request): WP_REST_Response|WP_Error {

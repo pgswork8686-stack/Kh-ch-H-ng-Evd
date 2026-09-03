@@ -12,6 +12,7 @@ final class EZEV_Operations_Sync {
         return $s;
     }
     public static function schedule(): void {
+        add_filter('cron_schedules', [self::class, 'schedules']);
         if (!wp_next_scheduled('ezevo_sync_event')) {
             wp_schedule_event(time() + 120, 'ezevo_5min', 'ezevo_sync_event');
         }
