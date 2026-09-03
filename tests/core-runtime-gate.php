@@ -2,9 +2,35 @@
 declare(strict_types=1);
 
 define('WP_USE_THEMES', false);
-require_once 'C:/Users/Admin/Local Sites/test-2/app/public/wp-load.php';
+
+// 1. Resolve WordPress root path safely from CLI or environment, with local fallback
+$wp_root = getenv('WP_ROOT') ?: getenv('WORDPRESS_ROOT');
+if (!$wp_root && isset($argv[1]) && is_dir($argv[1])) {
+    $wp_root = $argv[1];
+}
+if (!$wp_root) {
+    $fallback = 'C:/Users/Admin/Local Sites/test-2/app/public';
+    if (file_exists($fallback . '/wp-load.php')) {
+        $wp_root = $fallback;
+    }
+}
+
+if (!$wp_root || !file_exists($wp_root . '/wp-load.php')) {
+    fwrite(STDERR, "FATAL: Could not locate WordPress root. Specify via WP_ROOT environment variable or first CLI argument.\n");
+    exit(1);
+}
+
+require_once rtrim($wp_root, '/\\') . '/wp-load.php';
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+// Environment safety check: Refuse to run destructive tests against staging/production
+$env = defined('WP_ENVIRONMENT_TYPE') ? WP_ENVIRONMENT_TYPE : (getenv('WP_ENVIRONMENT_TYPE') ?: 'local');
+$site_url = get_option('siteurl', '');
+if (in_array($env, ['staging', 'production', 'live'], true) || (!str_contains($site_url, 'local') && !str_contains($site_url, 'test') && !str_contains($site_url, 'localhost') && !str_contains($site_url, '127.0.0.1'))) {
+    fwrite(STDERR, "SECURITY REFUSAL: Runtime gate suite detected non-local environment ('$env', URL: '$site_url'). Destructive tests aborted.\n");
+    exit(1);
+}
 
 $failures = [];
 $passes = [];
@@ -167,13 +193,20 @@ check(abs(($updated_station['location']['lat'] ?? 0) - 10.7750000) < 0.0001, 'Up
 check(($updated_station['max_power_kw'] ?? 0) == 180, 'Updated power saved');
 
 // 5. Auth Login/Logout endpoint verification
+$test_admin_login = 'test_gate_admin_' . wp_rand(1000, 9999);
+$test_admin_pass = wp_generate_password(24, true, true);
+$test_admin_id = wp_create_user($test_admin_login, $test_admin_pass, $test_admin_login . '@ezev.test');
+$test_admin_obj = new WP_User($test_admin_id);
+$test_admin_obj->set_role('administrator');
+
 $req_login = new WP_REST_Request('POST', '/ezev/v1/auth/login');
-$req_login->set_body_params(['username' => 'admin', 'password' => 'admin']);
+$req_login->set_body_params(['username' => $test_admin_login, 'password' => $test_admin_pass]);
 $res_login = $rest_server->dispatch($req_login);
 check($res_login->get_status() === 200, 'POST /auth/login returns 200', 'Status: ' . $res_login->get_status());
 $login_data = $res_login->get_data();
 check(!empty($login_data['rest_nonce']), 'Login response provides rest_nonce');
 check($login_data['redirect_url'] === admin_url(), 'Admin redirects to wp-admin', 'Got: ' . $login_data['redirect_url']);
+wp_delete_user($test_admin_id);
 
 // Customer login & redirect
 $cust = get_user_by('login', 'customer_auto');

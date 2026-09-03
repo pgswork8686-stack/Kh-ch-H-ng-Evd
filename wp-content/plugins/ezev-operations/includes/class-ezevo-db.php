@@ -29,7 +29,8 @@ final class EZEV_Operations_DB {
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, station_id VARCHAR(100) NOT NULL, recorded_at DATETIME NOT NULL,
             grid_kwh DECIMAL(14,3) NOT NULL DEFAULT 0, ev_kwh DECIMAL(14,3) NOT NULL DEFAULT 0, solar_kwh DECIMAL(14,3) NOT NULL DEFAULT 0,
             bess_charge_kwh DECIMAL(14,3) NOT NULL DEFAULT 0, bess_discharge_kwh DECIMAL(14,3) NOT NULL DEFAULT 0, peak_kw DECIMAL(12,3) NOT NULL DEFAULT 0,
-            provider VARCHAR(80) NOT NULL DEFAULT 'manual', PRIMARY KEY(id), UNIQUE KEY station_time(station_id,recorded_at), KEY recorded_at(recorded_at)
+            provider VARCHAR(80) NOT NULL DEFAULT 'manual', provider_record_id VARCHAR(120) NULL,
+            PRIMARY KEY(id), UNIQUE KEY provider_station_time(provider,station_id,recorded_at), KEY station_id(station_id), KEY recorded_at(recorded_at), KEY provider_record_id(provider_record_id)
         ) $c;";
         $sql[]="CREATE TABLE ".self::table('alerts')." (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, alert_id VARCHAR(120) NOT NULL, station_id VARCHAR(100) NOT NULL, charger_id VARCHAR(100) NULL,
@@ -69,17 +70,26 @@ final class EZEV_Operations_DB {
             $wpdb->query("ALTER TABLE $sess_table ADD COLUMN connector_id VARCHAR(100) NULL AFTER charger_id, ADD INDEX connector_id(connector_id)");
         }
         $energy_table = self::table('energy');
-        $has_unique = $wpdb->get_var("SHOW INDEX FROM $energy_table WHERE Key_name = 'station_time' AND Non_unique = 0");
-        if (!$has_unique) {
-            // Drop existing non-unique index if present, and create UNIQUE index
-            $wpdb->query("ALTER TABLE $energy_table DROP INDEX station_time, ADD UNIQUE KEY station_time (station_id, recorded_at)");
+        $has_prov_rec = $wpdb->get_var("SHOW COLUMNS FROM $energy_table LIKE 'provider_record_id'");
+        if (!$has_prov_rec) {
+            $wpdb->query("ALTER TABLE $energy_table ADD COLUMN provider_record_id VARCHAR(120) NULL AFTER provider, ADD INDEX provider_record_id(provider_record_id)");
+        }
+        $has_prov_key = $wpdb->get_var("SHOW INDEX FROM $energy_table WHERE Key_name = 'provider_station_time'");
+        if (!$has_prov_key) {
+            // Drop old station_time index if exists, and add provider_station_time
+            $old_idx = $wpdb->get_var("SHOW INDEX FROM $energy_table WHERE Key_name = 'station_time'");
+            if ($old_idx) {
+                $wpdb->query("ALTER TABLE $energy_table DROP INDEX station_time");
+            }
+            $wpdb->query("ALTER TABLE $energy_table ADD UNIQUE KEY provider_station_time (provider, station_id, recorded_at)");
         }
     }
 
     public static function maybe_upgrade(): void {
         $installed = (string) get_option('ezevo_db_version', '0');
         $target = defined('EZEVO_DB_VERSION') ? EZEVO_DB_VERSION : '1.1.0';
-        $needs_upgrade = version_compare($installed, $target, '<') || version_compare($installed, '2.0.0', '>=');
+        $legacy_versions = ['0', '1.0.0', '1.0.1', '1.0.2', '1.0.3'];
+        $needs_upgrade = version_compare($installed, $target, '<') || in_array($installed, $legacy_versions, true);
         if ($needs_upgrade) {
             self::install();
         }

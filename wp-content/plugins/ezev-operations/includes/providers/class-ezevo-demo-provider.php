@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (!defined('ABSPATH')) { exit; }
 
 final class EZEV_Operations_Demo_Provider implements EZEV_Operations_Provider {

@@ -1,0 +1,54 @@
+﻿name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop/*
+  pull_request:
+    branches:
+      - main
+      - develop/*
+
+jobs:
+  php-syntax-and-static-contracts:
+    name: PHP Syntax & Static Contract Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, json, pdo, mysqli
+
+      - name: Validate PHP Syntax (Lint)
+        run: |
+          echo "Linting all PHP files in repo..."
+          errors=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null 2>&1; then
+              echo "Syntax error in $file"
+              php -l "$file"
+              errors=$((errors + 1))
+            fi
+          done < <(find . -type f -name "*.php" -print0)
+          
+          if [ $errors -ne 0 ]; then
+            echo "Lint failed with $errors error(s)."
+            exit 1
+          fi
+          echo "All PHP files passed syntax check."
+
+      - name: Verify Contract Definitions
+        run: |
+          echo "Verifying contract definitions and constants..."
+          grep -q "define('EZEV_CORE_DB_VERSION', '1.1.0')" wp-content/plugins/ezev-core/ezev-core.php || (echo "Missing EZEV_CORE_DB_VERSION 1.1.0 in ezev-core" && exit 1)
+          grep -q "define('EZEVO_DB_VERSION', '1.1.0')" wp-content/plugins/ezev-operations/ezev-operations.php || (echo "Missing EZEVO_DB_VERSION 1.1.0 in ezev-operations" && exit 1)
+          grep -q "self::table('connectors')" wp-content/plugins/ezev-operations/includes/class-ezevo-db.php || (echo "Missing connectors table definition" && exit 1)
+          grep -q "duplicate_webhook" wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php || (echo "Missing duplicate_webhook check in REST" && exit 1)
+          grep -q "provider_station_time" wp-content/plugins/ezev-operations/includes/class-ezevo-db.php || (echo "Missing provider_station_time index" && exit 1)
+          echo "All contract definitions successfully verified."
