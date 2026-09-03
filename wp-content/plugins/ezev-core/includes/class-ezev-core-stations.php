@@ -161,6 +161,52 @@ final class EZEV_Core_Stations {
         return $rows;
     }
 
+    public static function domain_list(array $args = []): array {
+        return array_map([self::class, 'to_domain_array'], self::list($args));
+    }
+
+    public static function to_domain_array(WP_Post|int|array $station): array {
+        if (is_array($station)) {
+            $row = $station;
+            $post = !empty($row['post_id']) ? get_post((int) $row['post_id']) : null;
+        } else {
+            $post = is_int($station) ? get_post($station) : $station;
+            $row = self::to_array($station);
+        }
+        if (!$row) { return []; }
+        $modified = $post instanceof WP_Post && $post->post_modified_gmt && $post->post_modified_gmt !== '0000-00-00 00:00:00'
+            ? gmdate('c', strtotime($post->post_modified_gmt . ' UTC'))
+            : null;
+        return [
+            'station_id' => (string) $row['station_id'],
+            'name' => (string) $row['name'],
+            'description' => (string) $row['description'],
+            'address' => [
+                'line' => (string) $row['address'],
+                'city' => (string) $row['city'],
+                'region' => (string) $row['region'],
+                'country' => (string) $row['country'],
+                'country_code' => (string) $row['country_code'],
+            ],
+            'location' => ['lat' => (float) $row['latitude'], 'lng' => (float) $row['longitude']],
+            'connectors' => array_values((array) $row['connector_types']),
+            'max_power_kw' => (float) $row['max_power_kw'],
+            'ports' => ['total' => (int) $row['ports_total'], 'available' => (int) $row['ports_available_manual']],
+            'opening_hours' => (string) $row['opening_hours'],
+            'status' => (string) $row['operational_status_manual'],
+            'amenities' => array_values((array) $row['amenities']),
+            'data' => ['mode' => (string) $row['data_mode'], 'is_demo' => (bool) $row['is_demo']],
+            'ownership' => [
+                'organization_id' => (string) $row['organization_id'],
+                'site_id' => (string) $row['site_id'],
+            ],
+            'public_notes' => (string) $row['public_notes'],
+            'url' => (string) $row['url'],
+            'thumbnail' => (string) $row['thumbnail'],
+            'updated_at' => $modified,
+        ];
+    }
+
     public static function to_array(WP_Post|int $post): array {
         $post = is_int($post) ? get_post($post) : $post;
         if (!$post) { return []; }

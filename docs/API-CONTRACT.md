@@ -1,6 +1,6 @@
 # API contract
 
-Status: observed v4.0.1 baseline. Fields marked **transitional** must not be copied into new clients.
+Status: EZEV Core v4.1.0 contract.
 
 All responses are JSON. WordPress cookie-authenticated mutations require the standard REST nonce (`X-WP-Nonce`) from same-origin browser clients. Authentication alone does not replace resource authorization.
 
@@ -17,23 +17,42 @@ Public station-master listing. Optional query: `country`.
   "stations": [{
     "station_id": "EZEV-VN-DEMO-001",
     "name": "Example station",
-    "latitude": 10.123,
-    "longitude": 106.456,
-    "connector_types": ["CCS2"],
+    "description": "Public fast-charging station",
+    "address": {"line": "...", "city": "Ho Chi Minh City", "region": "...", "country": "Vietnam", "country_code": "VN"},
+    "location": {"lat": 10.123, "lng": 106.456},
+    "connectors": ["CCS2"],
     "max_power_kw": 180,
-    "data_mode": "manual",
-    "is_demo": true
+    "ports": {"total": 4, "available": 2},
+    "opening_hours": "24/7",
+    "status": "active",
+    "amenities": [],
+    "data": {"mode": "manual", "is_demo": true},
+    "ownership": {"organization_id": "EZEV-ORG-001", "site_id": "EZEV-SITE-001"},
+    "public_notes": "",
+    "url": "https://example.test/stations/example/",
+    "thumbnail": "",
+    "updated_at": "2026-09-03T08:00:00+00:00"
   }]
 }
 ```
 
-The station object also currently exposes `post_id`, description, address/country fields, port counts, manual status, hours, amenities, organization/site internal IDs, notes, URL, and thumbnail. `post_id` is **transitional**. Consumers must key by `station_id`.
+The public station object never exposes WordPress post IDs or raw post metadata. Consumers key exclusively by `station_id`.
 
-`GET /stations/{station_id}` is required but not implemented in this baseline.
+### `GET /stations/{station_id}`
+
+Public. Returns `{ "station": <station> }` using the same domain object. Unknown or unpublished IDs return 404.
+
+### `POST /stations`
+
+Requires `ezev_manage_stations`. Creates a published station using the domain schema and returns 201. Duplicate `station_id` returns 409.
+
+### `PUT|PATCH /stations/{station_id}`
+
+Requires `ezev_manage_stations`. Updates the station addressed by stable ID. `station_id` is immutable; a conflicting body ID returns 409. Invalid coordinate ranges return 422.
 
 ### `GET /me`
 
-Requires login. Returns WordPress user identity, roles, memberships, and `allowed_station_post_ids` (**transitional**). A future compatible addition should provide `allowed_station_ids` using stable IDs.
+Requires login. Returns WordPress user identity, roles, memberships, and stable `allowed_station_ids`.
 
 ### `GET /saved-stations`
 
@@ -41,11 +60,11 @@ Requires login. Returns `{ "stations": [...] }`.
 
 ### `POST /saved-stations`
 
-Requires login. Current request is `{ "station_id": 123 }`, where the value is actually a WordPress post ID (**contract defect**). Current success response is `{ "saved": true }`.
+Requires login. Request is `{ "station_id": "EZEV-VN-DEMO-001" }`. Success response is `{ "saved": true }`.
 
 ### `DELETE /saved-stations/{station_id}`
 
-Requires login. The path value is currently a numeric WordPress post ID (**contract defect**). Success returns `{ "saved": false }`.
+Requires login. The path value is a stable station ID. Success returns `{ "saved": false }`.
 
 ### `POST /auth/login`
 
