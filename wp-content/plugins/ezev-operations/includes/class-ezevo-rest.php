@@ -137,8 +137,14 @@ final class EZEV_Operations_REST {
             return new WP_Error('invalid_station', 'Station ID is required.', ['status' => 400]);
         }
 
-        // Global internal operations / technical with bypass
-        if (user_can($user_id, 'ezev_view_all_stations') && (user_can($user_id, 'ezev_internal_ops') || user_can($user_id, 'ezev_internal_technical'))) {
+        $user = get_userdata($user_id);
+        $user_roles = (array) ($user->roles ?? []);
+        $is_internal_ops = in_array('ezev_internal_ops', $user_roles, true)
+            || in_array('ezev_internal_technical', $user_roles, true)
+            || user_can($user_id, 'ezev_manage_operations');
+
+        // Global internal operations / technical with all-station bypass capability
+        if ($is_internal_ops && user_can($user_id, 'ezev_view_all_stations')) {
             return true;
         }
 
@@ -159,8 +165,8 @@ final class EZEV_Operations_REST {
         $stn_org = (string) get_post_meta($post_id, '_ezev_organization_id', true);
         $stn_site = (string) get_post_meta($post_id, '_ezev_site_id', true);
 
-        // Internal technical/ops with station scope
-        if (user_can($user_id, 'ezev_internal_ops') || user_can($user_id, 'ezev_internal_technical')) {
+        // Internal technical/ops with station scope verified
+        if ($is_internal_ops) {
             return true;
         }
 
@@ -741,6 +747,13 @@ final class EZEV_Operations_REST {
         $ticket_id = 'TKT-ALT-' . wp_rand(10000, 99999);
         $now = current_time('mysql', true);
         $maintTable = EZEV_Operations_DB::table('maintenance');
+
+        // GATE 3.2.1: Atomic Logical Transaction
+        $tx_start = $wpdb->query('START TRANSACTION');
+        if ($tx_start === false) {
+            return new WP_Error('transaction_failed', 'Could not begin transaction.', ['status' => 500]);
+        }
+
         $inserted = $wpdb->insert($maintTable, [
             'ticket_id'        => $ticket_id,
             'station_id'       => $alert['station_id'],
@@ -754,10 +767,30 @@ final class EZEV_Operations_REST {
             'updated_at'       => $now,
         ]);
         if ($inserted === false) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('maintenance_create_failed', 'Failed to create maintenance ticket.', ['status' => 500]);
         }
+
+        // Test-only injectable failure seam for alert update rollback
+        $forced_fail = apply_filters('ezevo_test_force_alert_ticket_failure', false, $alert, $aid);
+        if ($forced_fail) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('alert_update_failed', 'Forced test failure during alert escalation update.', ['status' => 500]);
+        }
+
         // Also mark alert acknowledged
-        $wpdb->update($table, ['status' => 'acknowledged', 'acknowledged_at' => $now], ['alert_id' => $aid]);
+        $up_alert = $wpdb->update($table, ['status' => 'acknowledged', 'acknowledged_at' => $now], ['alert_id' => $aid]);
+        if ($up_alert === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('alert_update_failed', 'Failed to update alert status.', ['status' => 500]);
+        }
+
+        $tx_commit = $wpdb->query('COMMIT');
+        if ($tx_commit === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('transaction_failed', 'Failed to commit alert escalation transaction.', ['status' => 500]);
+        }
+
         $ticket = $wpdb->get_row($wpdb->prepare("SELECT * FROM $maintTable WHERE ticket_id = %s", $ticket_id), ARRAY_A);
         return new WP_REST_Response(['ticket' => self::serialize_maintenance($ticket ?: [])], 201);
     }

@@ -658,7 +658,7 @@ final class EZEV_Core_REST {
             'updated_at'      => $now,
         ]);
         if (!$inserted) {
-            return new WP_Error('db_error', 'Failed to create organization.', ['status' => 500]);
+            return new WP_Error('organization_create_failed', 'Failed to create organization.', ['status' => 500]);
         }
         EZEV_Core_DB::log('organization_created', 'organization', $org_id, ['name' => $name, 'type' => $type]);
         $row = EZEV_Core_Domain::organization_by_id($org_id);
@@ -685,10 +685,13 @@ final class EZEV_Core_REST {
         $fields['updated_at'] = current_time('mysql', true);
 
         $table = EZEV_Core_DB::table('organizations');
-        $wpdb->update($table, $fields, ['organization_id' => $id]);
+        $updated = $wpdb->update($table, $fields, ['organization_id' => $id]);
+        if ($updated === false) {
+            return new WP_Error('organization_update_failed', 'Failed to update organization.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('organization_updated', 'organization', $id, $fields);
-        $updated = EZEV_Core_Domain::organization_by_id($id);
-        return rest_ensure_response(['organization' => self::serialize_organization($updated ?: [])]);
+        $updated_row = EZEV_Core_Domain::organization_by_id($id);
+        return rest_ensure_response(['organization' => self::serialize_organization($updated_row ?: [])]);
     }
 
     public static function delete_organization(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -728,7 +731,10 @@ final class EZEV_Core_REST {
         }
 
         $table = EZEV_Core_DB::table('organizations');
-        $wpdb->delete($table, ['organization_id' => $id]);
+        $deleted = $wpdb->delete($table, ['organization_id' => $id]);
+        if ($deleted === false) {
+            return new WP_Error('organization_delete_failed', 'Failed to delete organization.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('organization_deleted', 'organization', $id);
         return rest_ensure_response(['deleted' => true]);
     }
@@ -816,7 +822,10 @@ final class EZEV_Core_REST {
             'updated_at'       => $now,
         ];
         $insert_format = ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s'];
-        $wpdb->insert($table, $insert_data, $insert_format);
+        $inserted = $wpdb->insert($table, $insert_data, $insert_format);
+        if (!$inserted) {
+            return new WP_Error('site_create_failed', 'Failed to create site.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('site_created', 'site', $site_id, ['name' => $name, 'organization_id' => $org_ref]);
         $row = EZEV_Core_Domain::site_by_id($site_id);
         return new WP_REST_Response(['site' => self::serialize_site($row ?: [])], 201);
@@ -845,10 +854,13 @@ final class EZEV_Core_REST {
         $fields['updated_at'] = current_time('mysql', true);
 
         $table = EZEV_Core_DB::table('sites');
-        $wpdb->update($table, $fields, ['site_id' => $id]);
+        $updated = $wpdb->update($table, $fields, ['site_id' => $id]);
+        if ($updated === false) {
+            return new WP_Error('site_update_failed', 'Failed to update site.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('site_updated', 'site', $id, $fields);
-        $updated = EZEV_Core_Domain::site_by_id($id);
-        return rest_ensure_response(['site' => self::serialize_site($updated ?: [])]);
+        $updated_row = EZEV_Core_Domain::site_by_id($id);
+        return rest_ensure_response(['site' => self::serialize_site($updated_row ?: [])]);
     }
 
     public static function delete_site(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -884,7 +896,10 @@ final class EZEV_Core_REST {
         }
 
         $table = EZEV_Core_DB::table('sites');
-        $wpdb->delete($table, ['site_id' => $id]);
+        $deleted = $wpdb->delete($table, ['site_id' => $id]);
+        if ($deleted === false) {
+            return new WP_Error('site_delete_failed', 'Failed to delete site.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('site_deleted', 'site', $id);
         return rest_ensure_response(['deleted' => true]);
     }
@@ -936,11 +951,14 @@ final class EZEV_Core_REST {
         $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE organization_ref = %s AND user_id = %d", $org_ref, $target_user_id), ARRAY_A);
         $now = current_time('mysql', true);
         if ($existing) {
-            $wpdb->update($table, ['role_key' => $role_key, 'updated_at' => $now], ['id' => $existing['id']]);
+            $updated = $wpdb->update($table, ['role_key' => $role_key, 'updated_at' => $now], ['id' => $existing['id']]);
+            if ($updated === false) {
+                return new WP_Error('member_update_failed', 'Failed to update member.', ['status' => 500]);
+            }
             $membership_id = $existing['membership_id'];
         } else {
             $membership_id = EZEV_Core_Domain::new_id('member');
-            $wpdb->insert($table, [
+            $inserted = $wpdb->insert($table, [
                 'organization_id'  => (int) $org['id'],
                 'organization_ref' => $org_ref,
                 'membership_id'    => $membership_id,
@@ -950,6 +968,9 @@ final class EZEV_Core_REST {
                 'created_at'       => $now,
                 'updated_at'       => $now,
             ], ['%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
+            if (!$inserted) {
+                return new WP_Error('member_create_failed', 'Failed to create member.', ['status' => 500]);
+            }
         }
         EZEV_Core_DB::log('member_assigned', 'membership', $membership_id, ['organization_id' => $org_ref, 'user_id' => $target_user_id, 'role_key' => $role_key]);
         $m = EZEV_Core_Domain::membership_by_id($membership_id);
@@ -976,10 +997,13 @@ final class EZEV_Core_REST {
         $fields['updated_at'] = current_time('mysql', true);
 
         $table = EZEV_Core_DB::table('org_members');
-        $wpdb->update($table, $fields, ['membership_id' => $membership_id]);
+        $updated = $wpdb->update($table, $fields, ['membership_id' => $membership_id]);
+        if ($updated === false) {
+            return new WP_Error('member_update_failed', 'Failed to update member.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('member_updated', 'membership', $membership_id, $fields);
-        $updated = EZEV_Core_Domain::membership_by_id($membership_id);
-        return rest_ensure_response(['member' => self::serialize_member($updated ?: [])]);
+        $updated_row = EZEV_Core_Domain::membership_by_id($membership_id);
+        return rest_ensure_response(['member' => self::serialize_member($updated_row ?: [])]);
     }
 
     public static function delete_member(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -996,7 +1020,10 @@ final class EZEV_Core_REST {
             return new WP_Error('forbidden', 'Forbidden: missing membership management capability.', ['status' => 403]);
         }
         $table = EZEV_Core_DB::table('org_members');
-        $wpdb->delete($table, ['membership_id' => $membership_id]);
+        $deleted = $wpdb->delete($table, ['membership_id' => $membership_id]);
+        if ($deleted === false) {
+            return new WP_Error('member_delete_failed', 'Failed to delete member.', ['status' => 500]);
+        }
         // Also cleanup access
         $wpdb->delete(EZEV_Core_DB::table('member_site_access'), ['membership_ref' => $membership_id]);
         $wpdb->delete(EZEV_Core_DB::table('member_station_access'), ['membership_ref' => $membership_id]);
@@ -1029,13 +1056,16 @@ final class EZEV_Core_REST {
         }
 
         $table = EZEV_Core_DB::table('member_site_access');
-        $wpdb->replace($table, [
+        $replaced = $wpdb->replace($table, [
             'member_id'      => (int) $m['id'],
             'site_id'        => (int) $site['id'],
             'membership_ref' => $membership_id,
             'site_ref'       => $site_id,
             'created_at'     => current_time('mysql', true),
         ], ['%d', '%d', '%s', '%s', '%s']);
+        if ($replaced === false) {
+            return new WP_Error('scope_assignment_failed', 'Failed to assign site scope.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('member_site_assigned', 'membership_site_access', $membership_id, ['site_id' => $site_id]);
         return rest_ensure_response(['assigned' => true]);
     }
@@ -1066,13 +1096,16 @@ final class EZEV_Core_REST {
         }
 
         $table = EZEV_Core_DB::table('member_station_access');
-        $wpdb->replace($table, [
+        $replaced = $wpdb->replace($table, [
             'member_id'       => (int) $m['id'],
             'station_post_id' => $post_id,
             'membership_ref'  => $membership_id,
             'station_id'      => $station_id,
             'created_at'      => current_time('mysql', true),
         ], ['%d', '%d', '%s', '%s', '%s']);
+        if ($replaced === false) {
+            return new WP_Error('scope_assignment_failed', 'Failed to assign station scope.', ['status' => 500]);
+        }
         EZEV_Core_DB::log('member_station_assigned', 'membership_station_access', $membership_id, ['station_id' => $station_id]);
         return rest_ensure_response(['assigned' => true]);
     }
@@ -1114,7 +1147,7 @@ final class EZEV_Core_REST {
             'created_at'       => current_time('mysql', true),
         ], ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s']);
         if (!$inserted) {
-            return new WP_Error('db_error', 'Failed to create invitation.', ['status' => 500]);
+            return new WP_Error('invitation_create_failed', 'Failed to create invitation.', ['status' => 500]);
         }
         EZEV_Core_DB::log('invitation_created', 'invitation', $invitation_ref, ['email' => $email, 'organization_id' => $org_ref]);
         return new WP_REST_Response([
@@ -1192,7 +1225,10 @@ final class EZEV_Core_REST {
         $memberTable = EZEV_Core_DB::table('org_members');
 
         // GATE 3.2: Transaction Boundary
-        $wpdb->query('START TRANSACTION');
+        $tx_start = $wpdb->query('START TRANSACTION');
+        if ($tx_start === false) {
+            return new WP_Error('transaction_failed', 'Could not begin transaction.', ['status' => 500]);
+        }
 
         // Atomic claim
         $claimed = $wpdb->query($wpdb->prepare(
@@ -1202,6 +1238,13 @@ final class EZEV_Core_REST {
         if ($claimed !== 1) {
             $wpdb->query('ROLLBACK');
             return new WP_Error('invitation_already_claimed', 'Invitation already accepted or invalid.', ['status' => 409]);
+        }
+
+        // Test-only injectable failure seam for testing real rollback after atomic claim
+        $forced_fail = apply_filters('ezev_test_force_invitation_membership_failure', false, $inv, $user_id);
+        if ($forced_fail) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('transaction_failed', 'Forced test failure during membership write.', ['status' => 500]);
         }
 
         // Create or update membership within transaction
@@ -1231,7 +1274,11 @@ final class EZEV_Core_REST {
             }
         }
 
-        $wpdb->query('COMMIT');
+        $tx_commit = $wpdb->query('COMMIT');
+        if ($tx_commit === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('transaction_failed', 'Failed to commit invitation acceptance transaction.', ['status' => 500]);
+        }
 
         EZEV_Core_DB::log('invitation_accepted', 'invitation', (string) ($inv['invitation_ref'] ?? $inv['id']), ['membership_id' => $membership_id, 'user_id' => $user_id]);
 
@@ -1264,7 +1311,7 @@ final class EZEV_Core_REST {
         }
         $updated = $wpdb->update($table, ['status' => 'revoked'], ['id' => (int) $inv['id']]);
         if ($updated === false) {
-            return new WP_Error('db_error', 'Failed to revoke invitation.', ['status' => 500]);
+            return new WP_Error('invitation_revoke_failed', 'Failed to revoke invitation.', ['status' => 500]);
         }
         EZEV_Core_DB::log('invitation_revoked', 'invitation', (string) ($inv['invitation_ref'] ?? $inv['id']));
         return rest_ensure_response(['revoked' => true]);

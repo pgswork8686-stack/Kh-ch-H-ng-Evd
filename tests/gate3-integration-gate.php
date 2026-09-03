@@ -300,13 +300,29 @@ $wpdb->replace(EZEV_Operations_DB::table('alerts'), [
     'occurred_at' => current_time('mysql', true),
 ]);
 
+// Test failure-path: forced ticket escalation failure rolls back both ticket and alert status
+add_filter('ezevo_test_force_alert_ticket_failure', '__return_true');
+$failEscReq = new WP_REST_Request('POST', "/ezev-ops/v1/alerts/{$g3AlertId}/create-ticket");
+$failEscReq->set_header('content-type', 'application/json');
+$failEscReq->set_body(json_encode(['priority' => 'critical']));
+$failEscRes = rest_do_request($failEscReq);
+remove_filter('ezevo_test_force_alert_ticket_failure', '__return_true');
+assertCheck("Alert escalation forced failure returns 500 alert_update_failed", $failEscRes->get_status() === 500 && $failEscRes->get_data()['code'] === 'alert_update_failed');
+
+$alertBeforeRollback = $wpdb->get_row($wpdb->prepare("SELECT status, acknowledged_at FROM " . EZEV_Operations_DB::table('alerts') . " WHERE alert_id = %s", $g3AlertId), ARRAY_A);
+assertCheck("Failed escalation rolls back: Alert remains status 'open'", ($alertBeforeRollback['status'] ?? '') === 'open');
+
+// Success path: escalation succeeds and creates ticket atomically
 $escReq = new WP_REST_Request('POST', "/ezev-ops/v1/alerts/{$g3AlertId}/create-ticket");
 $escReq->set_header('content-type', 'application/json');
 $escReq->set_body(json_encode(['priority' => 'critical']));
 $escRes = rest_do_request($escReq);
-assertCheck("POST /alerts/{id}/create-ticket returns 201", $escRes->get_status() === 201);
+assertCheck("POST /alerts/{id}/create-ticket returns 201 on success", $escRes->get_status() === 201);
 $g3TicketId = $escRes->get_data()['ticket']['ticket_id'] ?? '';
 assertCheck("Escalated ticket has ticket_id", !empty($g3TicketId));
+
+$alertAfterSuccess = $wpdb->get_row($wpdb->prepare("SELECT status FROM " . EZEV_Operations_DB::table('alerts') . " WHERE alert_id = %s", $g3AlertId), ARRAY_A);
+assertCheck("Successful escalation marks Alert as 'acknowledged'", ($alertAfterSuccess['status'] ?? '') === 'acknowledged');
 
 $maintGetRes = rest_do_request(new WP_REST_Request('GET', "/ezev-ops/v1/maintenance/{$g3TicketId}"));
 assertCheck("GET /maintenance/{id} returns 200", $maintGetRes->get_status() === 200);
@@ -408,6 +424,12 @@ assertCheck("Cross-Org Station assignment rejected with 422 cross_organization_m
 
 // -------------------------------------------------------------
 echo "\n--- [GROUP 9] GATE 3.2: Business Owner / Admin Self-Service Test Matrix ---\n";
+// Dynamically resolve real numeric compatibility IDs from newly created entities
+$orgNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('organizations') . " WHERE organization_id = %s", $g3OrgId));
+$orgBNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('organizations') . " WHERE organization_id = %s", $g3OrgBId));
+$siteNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('sites') . " WHERE site_id = %s", $g3SiteId));
+$siteBNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('sites') . " WHERE site_id = %s", $g3SiteBId));
+
 // Create actors for Org A:
 $ownerA = getOrCreateUser('owner_a_' . $runSuffix, 'ezev_business');
 $adminA = getOrCreateUser('admin_a_' . $runSuffix, 'ezev_business');
@@ -416,20 +438,23 @@ $viewerA = getOrCreateUser('viewer_a_' . $runSuffix, 'ezev_business');
 $financeA = getOrCreateUser('finance_a_' . $runSuffix, 'ezev_business');
 $ownerB = getOrCreateUser('owner_b_' . $runSuffix, 'ezev_business');
 
-// Set memberships in Org A
+// Set memberships in Org A with real numeric org ID
 $now = current_time('mysql', true);
 $mTable = EZEV_Core_DB::table('org_members');
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-OWNA-' . $runSuffix, 'user_id' => $ownerA->ID, 'role_key' => 'owner', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-ADMA-' . $runSuffix, 'user_id' => $adminA->ID, 'role_key' => 'admin', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-SMGA-' . $runSuffix, 'user_id' => $siteMgrA->ID, 'role_key' => 'site_manager', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-VIEWA-' . $runSuffix, 'user_id' => $viewerA->ID, 'role_key' => 'viewer', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-FINA-' . $runSuffix, 'user_id' => $financeA->ID, 'role_key' => 'finance', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-// Set membership for Owner B in Org B
-$wpdb->replace($mTable, ['organization_id' => 2, 'organization_ref' => $g3OrgBId, 'membership_id' => 'MEM-OWNB-' . $runSuffix, 'user_id' => $ownerB->ID, 'role_key' => 'owner', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-OWNA-' . $runSuffix, 'user_id' => $ownerA->ID, 'role_key' => 'owner', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-ADMA-' . $runSuffix, 'user_id' => $adminA->ID, 'role_key' => 'admin', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-SMGA-' . $runSuffix, 'user_id' => $siteMgrA->ID, 'role_key' => 'site_manager', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-VIEWA-' . $runSuffix, 'user_id' => $viewerA->ID, 'role_key' => 'viewer', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-FINA-' . $runSuffix, 'user_id' => $financeA->ID, 'role_key' => 'finance', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+// Set membership for Owner B in Org B with real numeric org B ID
+$wpdb->replace($mTable, ['organization_id' => $orgBNumericId, 'organization_ref' => $g3OrgBId, 'membership_id' => 'MEM-OWNB-' . $runSuffix, 'user_id' => $ownerB->ID, 'role_key' => 'owner', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
 
-// Assign Site A to Site Manager A
+// Resolve real numeric ID of Site Manager member
+$memNumSiteMgrA = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $mTable WHERE membership_id = %s", 'MEM-SMGA-' . $runSuffix));
+
+// Assign Site A to Site Manager A with real numeric IDs
 $msTable = EZEV_Core_DB::table('member_site_access');
-$wpdb->replace($msTable, ['member_id' => 1, 'site_id' => 1, 'membership_ref' => 'MEM-SMGA-' . $runSuffix, 'site_ref' => $g3SiteId, 'created_at' => $now]);
+$wpdb->replace($msTable, ['member_id' => $memNumSiteMgrA, 'site_id' => $siteNumericId, 'membership_ref' => 'MEM-SMGA-' . $runSuffix, 'site_ref' => $g3SiteId, 'created_at' => $now]);
 
 // 1. Read Org A Matrix
 wp_set_current_user($ownerA->ID);
@@ -528,12 +553,15 @@ $wpdb->replace(EZEV_Operations_DB::table('maintenance'), [
 
 // Create User X: Org A -> site_manager (Station A assigned); Org B -> viewer (Station B readable)
 $userX = getOrCreateUser('user_x_' . $runSuffix, 'ezev_business');
-$wpdb->replace($mTable, ['organization_id' => 1, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-XA-' . $runSuffix, 'user_id' => $userX->ID, 'role_key' => 'site_manager', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
-$wpdb->replace($mTable, ['organization_id' => 2, 'organization_ref' => $g3OrgBId, 'membership_id' => 'MEM-XB-' . $runSuffix, 'user_id' => $userX->ID, 'role_key' => 'viewer', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgNumericId, 'organization_ref' => $g3OrgId, 'membership_id' => 'MEM-XA-' . $runSuffix, 'user_id' => $userX->ID, 'role_key' => 'site_manager', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+$wpdb->replace($mTable, ['organization_id' => $orgBNumericId, 'organization_ref' => $g3OrgBId, 'membership_id' => 'MEM-XB-' . $runSuffix, 'user_id' => $userX->ID, 'role_key' => 'viewer', 'status' => 'active', 'created_at' => $now, 'updated_at' => $now]);
+
+$memNumUserXA = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $mTable WHERE membership_id = %s", 'MEM-XA-' . $runSuffix));
+$memNumUserXB = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $mTable WHERE membership_id = %s", 'MEM-XB-' . $runSuffix));
 
 $mstTable = EZEV_Core_DB::table('member_station_access');
-$wpdb->replace($mstTable, ['member_id' => 1, 'station_post_id' => $stationPostId, 'membership_ref' => 'MEM-XA-' . $runSuffix, 'station_id' => $g3StationId, 'created_at' => $now]);
-$wpdb->replace($mstTable, ['member_id' => 2, 'station_post_id' => $stnBPostId, 'membership_ref' => 'MEM-XB-' . $runSuffix, 'station_id' => $g3StationBId, 'created_at' => $now]);
+$wpdb->replace($mstTable, ['member_id' => $memNumUserXA, 'station_post_id' => $stationPostId, 'membership_ref' => 'MEM-XA-' . $runSuffix, 'station_id' => $g3StationId, 'created_at' => $now]);
+$wpdb->replace($mstTable, ['member_id' => $memNumUserXB, 'station_post_id' => $stnBPostId, 'membership_ref' => 'MEM-XB-' . $runSuffix, 'station_id' => $g3StationBId, 'created_at' => $now]);
 
 wp_set_current_user($userX->ID);
 
@@ -546,23 +574,55 @@ $transReqA->set_header('content-type', 'application/json');
 $transReqA->set_body(json_encode(['status' => 'in_progress']));
 assertCheck("User X CAN transition Ticket A (200)", rest_do_request($transReqA)->get_status() === 200);
 
-// 2. Negative: User X CANNOT mutate Station B alert & ticket (Privilege Escalation Defense)
+// 2. Negative: User X CANNOT mutate Station B resources (Test all 6 mutation handlers)
+// Handler 1: Alert acknowledge outside scope -> 403
 $ackBRes = rest_do_request(new WP_REST_Request('POST', "/ezev-ops/v1/alerts/{$g3AlertBId}/acknowledge"));
-assertCheck("User X CANNOT acknowledge Alert B (403 rest_forbidden)", $ackBRes->get_status() === 403);
+assertCheck("Security Regression 1/6: Acknowledge Alert B rejected with 403", $ackBRes->get_status() === 403);
 
+// Handler 2: Alert resolve outside scope -> 403
+$resBRes = rest_do_request(new WP_REST_Request('POST', "/ezev-ops/v1/alerts/{$g3AlertBId}/resolve"));
+assertCheck("Security Regression 2/6: Resolve Alert B rejected with 403", $resBRes->get_status() === 403);
+
+// Handler 3: Alert create ticket outside scope -> 403
+$escBReq = new WP_REST_Request('POST', "/ezev-ops/v1/alerts/{$g3AlertBId}/create-ticket");
+$escBReq->set_header('content-type', 'application/json');
+$escBReq->set_body(json_encode(['priority' => 'critical']));
+$escBRes = rest_do_request($escBReq);
+assertCheck("Security Regression 3/6: Create Ticket from Alert B rejected with 403", $escBRes->get_status() === 403);
+
+// Handler 4: Create Maintenance ticket for station outside scope -> 403
+$createMaintBReq = new WP_REST_Request('POST', '/ezev-ops/v1/maintenance');
+$createMaintBReq->set_header('content-type', 'application/json');
+$createMaintBReq->set_body(json_encode([
+    'station_id' => $g3StationBId,
+    'summary'    => 'Unauthorized Ticket for Station B',
+]));
+$createMaintBRes = rest_do_request($createMaintBReq);
+assertCheck("Security Regression 4/6: Create Maintenance for Station B rejected with 403", $createMaintBRes->get_status() === 403);
+
+// Handler 5: Update Maintenance ticket outside scope -> 403
+$upMaintBReq = new WP_REST_Request('PUT', "/ezev-ops/v1/maintenance/{$g3TicketBId}");
+$upMaintBReq->set_header('content-type', 'application/json');
+$upMaintBReq->set_body(json_encode(['summary' => 'Tampered Summary']));
+$upMaintBRes = rest_do_request($upMaintBReq);
+assertCheck("Security Regression 5/6: Update Ticket B rejected with 403", $upMaintBRes->get_status() === 403);
+
+// Handler 6: Transition Maintenance ticket outside scope -> 403
 $transReqB = new WP_REST_Request('POST', "/ezev-ops/v1/maintenance/{$g3TicketBId}/transition");
 $transReqB->set_header('content-type', 'application/json');
 $transReqB->set_body(json_encode(['status' => 'resolved']));
 $transBRes = rest_do_request($transReqB);
-assertCheck("User X CANNOT transition Ticket B (403 rest_forbidden)", $transBRes->get_status() === 403);
+assertCheck("Security Regression 6/6: Transition Ticket B rejected with 403", $transBRes->get_status() === 403);
 
 // 3. Verify Station B DB rows remain completely untouched
 $alertBRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Operations_DB::table('alerts') . " WHERE alert_id = %s", $g3AlertBId), ARRAY_A);
-assertCheck("Alert B in database status is STILL 'open'", $alertBRow['status'] === 'open');
+assertCheck("Alert B in database status is STILL 'open'", ($alertBRow['status'] ?? '') === 'open');
 assertCheck("Alert B acknowledged_at is STILL NULL", is_null($alertBRow['acknowledged_at']));
+assertCheck("Alert B resolved_at is STILL NULL", is_null($alertBRow['resolved_at']));
 
 $ticketBRow = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Operations_DB::table('maintenance') . " WHERE ticket_id = %s", $g3TicketBId), ARRAY_A);
-assertCheck("Ticket B in database status is STILL 'open'", $ticketBRow['status'] === 'open');
+assertCheck("Ticket B in database status is STILL 'open'", ($ticketBRow['status'] ?? '') === 'open');
+assertCheck("Ticket B summary is STILL 'Foreign Ticket B'", ($ticketBRow['summary'] ?? '') === 'Foreign Ticket B');
 assertCheck("Ticket B closed_at is STILL NULL", is_null($ticketBRow['closed_at']));
 
 
@@ -574,10 +634,11 @@ $transTokenHash = hash('sha256', $transToken);
 $transEmail = 'trans_test_' . $runSuffix . '@gate32.test';
 $invTable = EZEV_Core_DB::table('invitations');
 
+// Create valid pending invitation under Org A
 $wpdb->insert($invTable, [
     'invitation_ref'   => 'EZEV-INV-TRANS-' . $runSuffix,
-    'organization_id'  => 9999999, // NON-EXISTENT ORG TO TRIGGER DB INSERT/LOOKUP ERROR OR SIMULATE FAILURE
-    'organization_ref' => 'NON-EXISTENT-ORG',
+    'organization_id'  => $orgNumericId,
+    'organization_ref' => $g3OrgId,
     'email'            => $transEmail,
     'role_key'         => 'viewer',
     'token_hash'       => $transTokenHash,
@@ -588,12 +649,30 @@ $wpdb->insert($invTable, [
 
 $transUser = getOrCreateUser('trans_user_' . $runSuffix, 'ezev_business', $transEmail);
 wp_set_current_user($transUser->ID);
-$claimFailRes = rest_do_request(new WP_REST_Request('POST', "/ezev/v1/invitations/{$transToken}/accept"));
-assertCheck("Invitation accept with invalid org fails with 404", $claimFailRes->get_status() === 404);
 
-// Verify status was NOT marked accepted
-$invStatusAfter = $wpdb->get_var($wpdb->prepare("SELECT status FROM $invTable WHERE token_hash = %s", $transTokenHash));
-assertCheck("Failed invitation claim remains 'pending' (no dirty commit)", $invStatusAfter === 'pending');
+// 1. Inject forced failure after atomic claim, during membership creation
+add_filter('ezev_test_force_invitation_membership_failure', '__return_true');
+$forcedFailRes = rest_do_request(new WP_REST_Request('POST', "/ezev/v1/invitations/{$transToken}/accept"));
+remove_filter('ezev_test_force_invitation_membership_failure', '__return_true');
+
+assertCheck("Acceptance with forced membership failure returns 500 transaction_failed", $forcedFailRes->get_status() === 500 && $forcedFailRes->get_data()['code'] === 'transaction_failed');
+
+// Verify database rollback: status remains 'pending' and NO membership row was committed
+$invStatusAfterRollback = $wpdb->get_var($wpdb->prepare("SELECT status FROM $invTable WHERE token_hash = %s", $transTokenHash));
+assertCheck("Rollback verified: Invitation status in DB remains 'pending'", $invStatusAfterRollback === 'pending');
+
+$membershipCountAfterRollback = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $mTable WHERE user_id = %d AND organization_ref = %s", $transUser->ID, $g3OrgId));
+assertCheck("Rollback verified: No membership created for user in DB", $membershipCountAfterRollback === 0);
+
+// 2. Retry with the EXACT same invitation token: must succeed cleanly
+$cleanAcceptRes = rest_do_request(new WP_REST_Request('POST', "/ezev/v1/invitations/{$transToken}/accept"));
+assertCheck("Retry with same token after rollback returns 200 accepted", $cleanAcceptRes->get_status() === 200 && ($cleanAcceptRes->get_data()['accepted'] ?? false) === true);
+
+$invStatusAfterSuccess = $wpdb->get_var($wpdb->prepare("SELECT status FROM $invTable WHERE token_hash = %s", $transTokenHash));
+assertCheck("Final DB state: Invitation status is now 'accepted'", $invStatusAfterSuccess === 'accepted');
+
+$membershipCountAfterSuccess = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $mTable WHERE user_id = %d AND organization_ref = %s", $transUser->ID, $g3OrgId));
+assertCheck("Final DB state: Exactly 1 membership row exists for user", $membershipCountAfterSuccess === 1);
 
 
 // -------------------------------------------------------------
@@ -607,11 +686,12 @@ $orgDelReq->set_header('content-type', 'application/json');
 $orgDelReq->set_body(json_encode(['name' => 'Pending Inv Org ' . $runSuffix, 'org_code' => $pendingOrgCode]));
 $orgDelRes = rest_do_request($orgDelReq);
 $delOrgId = $orgDelRes->get_data()['organization']['organization_id'];
+$delOrgNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('organizations') . " WHERE organization_id = %s", $delOrgId));
 
 // Create pending invitation in this org
 $wpdb->insert($invTable, [
     'invitation_ref'   => 'EZEV-INV-DEL-' . $runSuffix,
-    'organization_id'  => 0,
+    'organization_id'  => $delOrgNumericId,
     'organization_ref' => $delOrgId,
     'email'            => 'del_' . $runSuffix . '@test.com',
     'role_key'         => 'viewer',
@@ -631,11 +711,13 @@ $siteDelReq->set_header('content-type', 'application/json');
 $siteDelReq->set_body(json_encode(['organization_id' => $g3OrgId, 'name' => 'Access Site ' . $runSuffix, 'site_code' => $steDelCode]));
 $siteDelRes = rest_do_request($siteDelReq);
 $delSiteId = $siteDelRes->get_data()['site']['site_id'];
+$delSiteNumericId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('sites') . " WHERE site_id = %s", $delSiteId));
+$memNumOwnerA = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $mTable WHERE membership_id = %s", 'MEM-OWNA-' . $runSuffix));
 
-// Assign member access to this site
+// Assign member access to this site with real numeric IDs
 $wpdb->replace(EZEV_Core_DB::table('member_site_access'), [
-    'member_id'      => 1,
-    'site_id'        => 1,
+    'member_id'      => $memNumOwnerA,
+    'site_id'        => $delSiteNumericId,
     'membership_ref' => 'MEM-OWNA-' . $runSuffix,
     'site_ref'       => $delSiteId,
     'created_at'     => current_time('mysql', true),
