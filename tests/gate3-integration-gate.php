@@ -157,6 +157,7 @@ $memRes = rest_do_request($memReq);
 assertCheck("POST /organizations/{id}/members returns 201", $memRes->get_status() === 201);
 $g3MembershipId = $memRes->get_data()['member']['membership_id'] ?? '';
 assertCheck("Created membership has stable membership_id", !empty($g3MembershipId));
+assertCheck("REST-created membership_id starts with EZEV-MEM- prefix", str_starts_with($g3MembershipId, 'EZEV-MEM-'));
 
 // Assign Site scope to membership
 $scopeSiteReq = new WP_REST_Request('POST', "/ezev/v1/memberships/{$g3MembershipId}/sites");
@@ -667,6 +668,8 @@ assertCheck("Rollback verified: No membership created for user in DB", $membersh
 // 2. Retry with the EXACT same invitation token: must succeed cleanly
 $cleanAcceptRes = rest_do_request(new WP_REST_Request('POST', "/ezev/v1/invitations/{$transToken}/accept"));
 assertCheck("Retry with same token after rollback returns 200 accepted", $cleanAcceptRes->get_status() === 200 && ($cleanAcceptRes->get_data()['accepted'] ?? false) === true);
+$claimedMemId = (string) ($cleanAcceptRes->get_data()['membership_id'] ?? '');
+assertCheck("Invitation-created membership_id starts with EZEV-MEM- prefix", str_starts_with($claimedMemId, 'EZEV-MEM-'));
 
 $invStatusAfterSuccess = $wpdb->get_var($wpdb->prepare("SELECT status FROM $invTable WHERE token_hash = %s", $transTokenHash));
 assertCheck("Final DB state: Invitation status is now 'accepted'", $invStatusAfterSuccess === 'accepted');
@@ -743,6 +746,61 @@ assertCheck("Delete member of Org A via Org B URL returns 404", $crossOrgMemDel-
 // Verify Member A is STILL owner of Org A
 $memRow = $wpdb->get_row($wpdb->prepare("SELECT role_key FROM $mTable WHERE membership_id = %s", 'MEM-OWNA-' . $runSuffix), ARRAY_A);
 assertCheck("Member A role_key in DB remains untouched as 'owner'", ($memRow['role_key'] ?? '') === 'owner');
+
+// GATE 3.2.1: Transactional Member Delete & Scope Cleanup Rollback
+// 1. Create dedicated user and member with site & station scopes
+$delTestUser = getOrCreateUser('del_test_usr_' . $runSuffix, 'ezev_business');
+$delMemReq = new WP_REST_Request('POST', "/ezev/v1/organizations/{$g3OrgId}/members");
+$delMemReq->set_header('content-type', 'application/json');
+$delMemReq->set_body(json_encode(['user_id' => $delTestUser->ID, 'role_key' => 'site_manager']));
+$delMemRes = rest_do_request($delMemReq);
+$delMemId = $delMemRes->get_data()['member']['membership_id'] ?? '';
+assertCheck("Transactional Delete Setup: member created with EZEV-MEM-", str_starts_with($delMemId, 'EZEV-MEM-'));
+
+// Assign Site A and Station A to this member
+$delSiteAssign = new WP_REST_Request('POST', "/ezev/v1/memberships/{$delMemId}/sites");
+$delSiteAssign->set_header('content-type', 'application/json');
+$delSiteAssign->set_body(json_encode(['site_id' => $g3SiteId]));
+rest_do_request($delSiteAssign);
+
+$delStnAssign = new WP_REST_Request('POST', "/ezev/v1/memberships/{$delMemId}/stations");
+$delStnAssign->set_header('content-type', 'application/json');
+$delStnAssign->set_body(json_encode(['station_id' => $g3StationId]));
+rest_do_request($delStnAssign);
+
+$preSiteCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE membership_ref = %s", $delMemId));
+$preStnCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_station_access') . " WHERE membership_ref = %s", $delMemId));
+assertCheck("Pre-test: member has 1 site access and 1 station access", $preSiteCount === 1 && $preStnCount === 1);
+
+// 2. Inject forced failure seam during delete
+add_filter('ezev_test_force_member_delete_failure', '__return_true');
+$forcedDelReq = new WP_REST_Request('DELETE', "/ezev/v1/organizations/{$g3OrgId}/members/{$delMemId}");
+$forcedDelRes = rest_do_request($forcedDelReq);
+remove_filter('ezev_test_force_member_delete_failure', '__return_true');
+
+assertCheck("Forced failure during delete returns 500 member_delete_failed", $forcedDelRes->get_status() === 500 && $forcedDelRes->get_data()['code'] === 'member_delete_failed');
+
+// 3. Confirm ROLLBACK: org_members, member_site_access, member_station_access rows remain 100% intact
+$rbMemCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('org_members') . " WHERE membership_id = %s", $delMemId));
+$rbSiteCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE membership_ref = %s", $delMemId));
+$rbStnCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_station_access') . " WHERE membership_ref = %s", $delMemId));
+
+assertCheck("Rollback verified: org_members row remains intact", $rbMemCount === 1);
+assertCheck("Rollback verified: member_site_access row remains intact", $rbSiteCount === 1);
+assertCheck("Rollback verified: member_station_access row remains intact", $rbStnCount === 1);
+
+// 4. Clean success delete: all 3 tables cleaned up atomically
+$cleanDelReq = new WP_REST_Request('DELETE', "/ezev/v1/organizations/{$g3OrgId}/members/{$delMemId}");
+$cleanDelRes = rest_do_request($cleanDelReq);
+assertCheck("Clean delete succeeds with 200 deleted: true", $cleanDelRes->get_status() === 200 && ($cleanDelRes->get_data()['deleted'] ?? false) === true);
+
+$postMemCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('org_members') . " WHERE membership_id = %s", $delMemId));
+$postSiteCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE membership_ref = %s", $delMemId));
+$postStnCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_station_access') . " WHERE membership_ref = %s", $delMemId));
+
+assertCheck("Post-delete: org_members cleanly removed (0)", $postMemCount === 0);
+assertCheck("Post-delete: member_site_access cleanly removed (0)", $postSiteCount === 0);
+assertCheck("Post-delete: member_station_access cleanly removed (0)", $postStnCount === 0);
 
 
 // -------------------------------------------------------------

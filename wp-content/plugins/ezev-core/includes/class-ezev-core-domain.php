@@ -14,6 +14,7 @@ final class EZEV_Core_Domain {
             'organization' => 'EZEV-ORG',
             'site' => 'EZEV-SITE',
             'membership' => 'EZEV-MEM',
+            'member' => 'EZEV-MEM',
             'station' => 'EZEV-STN',
             'invitation' => 'EZEV-INV',
         ];

@@ -957,7 +957,7 @@ final class EZEV_Core_REST {
             }
             $membership_id = $existing['membership_id'];
         } else {
-            $membership_id = EZEV_Core_Domain::new_id('member');
+            $membership_id = EZEV_Core_Domain::new_id('membership');
             $inserted = $wpdb->insert($table, [
                 'organization_id'  => (int) $org['id'],
                 'organization_ref' => $org_ref,
@@ -1019,14 +1019,48 @@ final class EZEV_Core_REST {
         if (!EZEV_Core_Auth::can_manage_membership($user_id, $org_ref)) {
             return new WP_Error('forbidden', 'Forbidden: missing membership management capability.', ['status' => 403]);
         }
+
+        // Transaction-safe cleanup
+        $tx_start = $wpdb->query('START TRANSACTION');
+        if ($tx_start === false) {
+            return new WP_Error('transaction_failed', 'Could not begin member delete transaction.', ['status' => 500]);
+        }
+
+        // 1. Delete member_site_access
+        $del_sites = $wpdb->delete(EZEV_Core_DB::table('member_site_access'), ['membership_ref' => $membership_id]);
+        if ($del_sites === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('member_delete_failed', 'Failed to remove member site access.', ['status' => 500]);
+        }
+
+        // Test-only injectable failure seam for member scope cleanup rollback test
+        $forced_fail = apply_filters('ezev_test_force_member_delete_failure', false, $membership_id, $org_ref);
+        if ($forced_fail) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('member_delete_failed', 'Forced test failure during member delete cleanup.', ['status' => 500]);
+        }
+
+        // 2. Delete member_station_access
+        $del_stations = $wpdb->delete(EZEV_Core_DB::table('member_station_access'), ['membership_ref' => $membership_id]);
+        if ($del_stations === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('member_delete_failed', 'Failed to remove member station access.', ['status' => 500]);
+        }
+
+        // 3. Delete org_members row
         $table = EZEV_Core_DB::table('org_members');
         $deleted = $wpdb->delete($table, ['membership_id' => $membership_id]);
         if ($deleted === false) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('member_delete_failed', 'Failed to delete member.', ['status' => 500]);
         }
-        // Also cleanup access
-        $wpdb->delete(EZEV_Core_DB::table('member_site_access'), ['membership_ref' => $membership_id]);
-        $wpdb->delete(EZEV_Core_DB::table('member_station_access'), ['membership_ref' => $membership_id]);
+
+        $tx_commit = $wpdb->query('COMMIT');
+        if ($tx_commit === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('transaction_failed', 'Failed to commit member delete transaction.', ['status' => 500]);
+        }
+
         EZEV_Core_DB::log('member_removed', 'membership', $membership_id);
         return rest_ensure_response(['deleted' => true]);
     }
