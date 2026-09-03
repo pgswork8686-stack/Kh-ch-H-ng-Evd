@@ -57,7 +57,7 @@ global $wpdb;
 update_option('ezev_core_db_version', '4.0.0'); // simulate legacy state
 EZEV_Core_DB::maybe_upgrade();
 $db_ver = get_option('ezev_core_db_version');
-check($db_ver === '1.1.0', 'Upgrade Migration to EZEV_CORE_DB_VERSION', "expected 1.1.0, got $db_ver");
+check($db_ver === EZEV_CORE_DB_VERSION, 'Upgrade Migration to EZEV_CORE_DB_VERSION', "expected " . EZEV_CORE_DB_VERSION . ", got $db_ver");
 
 $expected_tables = [
     'ezev_organizations',

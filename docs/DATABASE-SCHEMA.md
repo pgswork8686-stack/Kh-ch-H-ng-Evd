@@ -12,10 +12,10 @@ Table names use the active WordPress prefix followed by `ezev_`.
 | `ezev_member_site_access` | `(member_id, site_id)` unique | stable `membership_ref` and `site_ref` added; numeric keys retained temporarily |
 | `ezev_member_station_access` | legacy composite key | stable `membership_ref` and `station_id`; post ID retained temporarily for upgrade safety |
 | `ezev_saved_stations` | stable `(user_id, station_id)` | post ID retained temporarily for upgrade safety |
-| `ezev_invitations` | hashed invitation token | organization, email, role, expiry |
+| `ezev_invitations` | `invitation_ref` unique, hashed `token_hash` | stable `invitation_ref`, stable `organization_ref`, email, role, expiry |
 | `ezev_audit_logs` | append-only numeric ID | actor, action, object, JSON context, hashed IP |
 
-Station master data is currently stored as `ezev_station` posts plus `_ezev_*` post metadata. The public key is `_ezev_station_id`; coordinates, connector types, power, demo state, stable organization ID, and stable site ID are metadata. Schema migration 1.1.0 backfills stable IDs into relationships while retaining legacy numeric columns for a reversible transition. Public APIs must not expose those numeric columns.
+Station master data is currently stored as `ezev_station` posts plus `_ezev_*` post metadata. The public key is `_ezev_station_id`; coordinates, connector types, power, demo state, stable organization ID, and stable site ID are metadata. Schema migration 1.2.0 backfills stable IDs into relationships (`invitation_ref`, `organization_ref`) while retaining legacy numeric columns for a reversible transition. Public APIs must not expose those numeric columns.
 
 ## Operations tables
 
@@ -35,7 +35,7 @@ The connector domain is fully normalized into `Station → Charger → Connector
 
 ## Installation and migrations
 
-- **Core**: Defines schema version `1.1.0`, runs an idempotent upgrade check during normal boot, applies `dbDelta()`, backfills stable business IDs, then updates `ezev_core_db_version`.
+- **Core**: Defines schema version `1.2.0`, runs an idempotent upgrade check during normal boot, applies `dbDelta()`, backfills stable business IDs (`organization_id`, `site_id`, `membership_id`, `invitation_ref`), then updates `ezev_core_db_version`.
 - **Operations**: Defines `EZEVO_DB_VERSION` = `1.2.0` independent of plugin release version. `maybe_upgrade()` runs on boot and activation, ensures `webhook_receipts` with `expires_at`, creates `ezev_connectors`, ensures `connector_id` on sessions, ensures unique index `provider_station_time (provider, station_id, recorded_at)` and `provider_record_id` on energy, and executes legacy connector migration. No demo data is seeded on activation; Demo Import is explicit. Periodic cron cleans up expired webhook receipts.
 
 Database foreign keys are not declared. Until a deliberate foreign-key policy is adopted, application services must validate referenced stable IDs and handle deletion/orphan cleanup transactionally.

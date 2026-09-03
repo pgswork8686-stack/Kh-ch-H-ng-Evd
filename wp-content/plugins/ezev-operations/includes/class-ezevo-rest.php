@@ -125,6 +125,89 @@ final class EZEV_Operations_REST {
         return self::can_manage_maintenance();
     }
 
+    public static function can_manage_station_resource(int $user_id, string $station_id): bool|WP_Error {
+        if ($user_id <= 0) {
+            return new WP_Error('rest_forbidden', 'Authentication required.', ['status' => 401]);
+        }
+        if (user_can($user_id, 'manage_options')) {
+            return true;
+        }
+        $station_id = sanitize_text_field($station_id);
+        if ($station_id === '') {
+            return new WP_Error('invalid_station', 'Station ID is required.', ['status' => 400]);
+        }
+
+        // Global internal operations / technical with bypass
+        if (user_can($user_id, 'ezev_view_all_stations') && (user_can($user_id, 'ezev_internal_ops') || user_can($user_id, 'ezev_internal_technical'))) {
+            return true;
+        }
+
+        if (!class_exists('EZEV_Core_Auth') || !class_exists('EZEV_Core_Stations')) {
+            return new WP_Error('rest_forbidden', 'Core authorization system unavailable.', ['status' => 403]);
+        }
+
+        // Verify station is in user's allowed station scope
+        $allowed_stations = EZEV_Core_Auth::allowed_station_keys($user_id);
+        if ($allowed_stations !== null && !in_array($station_id, $allowed_stations, true)) {
+            return new WP_Error('rest_forbidden', 'Forbidden: station not in assigned scope.', ['status' => 403]);
+        }
+
+        $post_id = EZEV_Core_Stations::find_by_station_id($station_id);
+        if (!$post_id) {
+            return new WP_Error('not_found', 'Station not found.', ['status' => 404]);
+        }
+        $stn_org = (string) get_post_meta($post_id, '_ezev_organization_id', true);
+        $stn_site = (string) get_post_meta($post_id, '_ezev_site_id', true);
+
+        // Internal technical/ops with station scope
+        if (user_can($user_id, 'ezev_internal_ops') || user_can($user_id, 'ezev_internal_technical')) {
+            return true;
+        }
+
+        // Business/Partner: Verify qualifying membership role_key for THIS specific station
+        $access = EZEV_Core_Auth::user_access($user_id);
+        $has_manage_role_for_station = false;
+
+        foreach ($access as $m) {
+            $org_ref = (string) ($m['organization_id'] ?? '');
+            if ($stn_org !== '' && $org_ref !== '' && $org_ref !== $stn_org) {
+                continue;
+            }
+            $rk = (string) ($m['role_key'] ?? '');
+            if (!in_array($rk, ['owner', 'admin', 'operations', 'site_manager'], true)) {
+                // viewer and finance cannot mutate
+                continue;
+            }
+
+            if (in_array($rk, ['owner', 'admin'], true)) {
+                $has_manage_role_for_station = true;
+                break;
+            }
+
+            $assigned_stations = (array) ($m['station_ids'] ?? []);
+            $assigned_sites = (array) ($m['site_ids'] ?? []);
+
+            if (in_array($station_id, $assigned_stations, true)) {
+                $has_manage_role_for_station = true;
+                break;
+            }
+            if ($stn_site !== '' && in_array($stn_site, $assigned_sites, true)) {
+                $has_manage_role_for_station = true;
+                break;
+            }
+            if (empty($assigned_stations) && empty($assigned_sites)) {
+                $has_manage_role_for_station = true;
+                break;
+            }
+        }
+
+        if ($has_manage_role_for_station) {
+            return true;
+        }
+
+        return new WP_Error('rest_forbidden', 'Forbidden: insufficient role or scope to manage this station resource.', ['status' => 403]);
+    }
+
     private static function allowed_station_keys(): ?array {
         // Only manage_options gets unconstrained (all) access.
         if (current_user_can('manage_options')) {
@@ -303,30 +386,70 @@ final class EZEV_Operations_REST {
         return ["$col IN ('$escaped')", []];
     }
 
-    private static function calculate_freshness(string $table = 'chargers', string $time_col = 'updated_at'): array {
+    private static function calculate_freshness(string $table = 'chargers', string $time_col = 'updated_at', array $where = [], array $args = [], array $rows = []): array {
         global $wpdb;
         $p = EZEV_Operations_Provider_Manager::active();
-        $key = $p->key();
-        $mode = ($key === 'demo') ? 'demo' : (($key === 'manual') ? 'manual' : 'api');
+        $fallback_key = $p->key();
+        $fallback_mode = ($fallback_key === 'demo') ? 'demo' : (($fallback_key === 'manual') ? 'manual' : 'api');
 
-        $tableName = EZEV_Operations_DB::table($table);
-        $last_updated = $wpdb->get_var("SELECT MAX($time_col) FROM $tableName");
-        if (!$last_updated) {
-            $last_updated = current_time('mysql', true);
+        // Determine data sources from returned rows if available
+        $distinct_providers = [];
+        foreach ($rows as $r) {
+            if (!empty($r['provider'])) {
+                $distinct_providers[$r['provider']] = true;
+            }
+        }
+        $providers = array_keys($distinct_providers);
+
+        if (count($providers) > 1) {
+            $data_sources = $providers;
+            $data_mode = 'mixed';
+            $data_source = implode(',', $providers);
+            $source_label = 'Mixed Providers';
+        } elseif (count($providers) === 1) {
+            $data_source = $providers[0];
+            $data_sources = [$data_source];
+            $data_mode = ($data_source === 'demo') ? 'demo' : (($data_source === 'manual') ? 'manual' : 'api');
+            $source_label = ucfirst($data_source) . ' Provider';
+        } else {
+            $data_source = $fallback_key;
+            $data_sources = [$fallback_key];
+            $data_mode = $fallback_mode;
+            $source_label = $p->label();
         }
 
+        $tableName = EZEV_Operations_DB::table($table);
+        $where_sql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $query = "SELECT MAX($time_col) FROM $tableName $where_sql";
+        $last_updated = !empty($args) ? $wpdb->get_var($wpdb->prepare($query, ...$args)) : $wpdb->get_var($query);
+
         $now_ts = current_time('timestamp', true);
+
+        if (!$last_updated) {
+            return [
+                'source'            => $source_label,
+                'data_source'       => $data_source,
+                'data_sources'      => $data_sources,
+                'data_mode'         => $data_mode,
+                'last_updated'      => null,
+                'fetched_at'        => current_time('mysql', true),
+                'freshness_seconds' => null,
+                'is_stale'          => true,
+            ];
+        }
+
         $up_ts = strtotime($last_updated) ?: $now_ts;
         $freshness_seconds = max(0, $now_ts - $up_ts);
 
         // Manual or Demo providers are NEVER considered realtime.
         // API providers are marked stale if no update within 10 minutes (600s).
-        $is_stale = ($mode === 'api') && ($freshness_seconds > 600);
+        $is_stale = ($data_mode === 'api') ? ($freshness_seconds > 600) : false;
 
         return [
-            'source'            => $p->label(),
-            'data_source'       => $key,
-            'data_mode'         => $mode,
+            'source'            => $source_label,
+            'data_source'       => $data_source,
+            'data_sources'      => $data_sources,
+            'data_mode'         => $data_mode,
             'last_updated'      => $last_updated,
             'fetched_at'        => current_time('mysql', true),
             'freshness_seconds' => $freshness_seconds,
@@ -334,8 +457,8 @@ final class EZEV_Operations_REST {
         ];
     }
 
-    private static function wrap_collection(string $legacy_key, array $serialized_rows, int $total, int $page, int $per_page, string $table = 'chargers', string $time_col = 'updated_at'): array {
-        $meta = self::calculate_freshness($table, $time_col);
+    private static function wrap_collection(string $legacy_key, array $serialized_rows, int $total, int $page, int $per_page, string $table = 'chargers', string $time_col = 'updated_at', array $where = [], array $args = []): array {
+        $meta = self::calculate_freshness($table, $time_col, $where, $args, $serialized_rows);
         return [
             $legacy_key  => $serialized_rows,
             'data'       => $serialized_rows,
@@ -374,7 +497,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_charger'], $rows);
-        return rest_ensure_response(self::wrap_collection('chargers', $serialized, $total, $page, $per_page));
+        return rest_ensure_response(self::wrap_collection('chargers', $serialized, $total, $page, $per_page, 'chargers', 'updated_at', $where, $args));
     }
 
     public static function charger(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -419,7 +542,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_connector'], $rows);
-        return rest_ensure_response(self::wrap_collection('connectors', $serialized, $total, $page, $per_page, 'connectors', 'updated_at'));
+        return rest_ensure_response(self::wrap_collection('connectors', $serialized, $total, $page, $per_page, 'connectors', 'updated_at', $where, $args));
     }
 
     public static function connector(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -464,7 +587,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_session'], $rows);
-        return rest_ensure_response(self::wrap_collection('sessions', $serialized, $total, $page, $per_page, 'sessions', 'started_at'));
+        return rest_ensure_response(self::wrap_collection('sessions', $serialized, $total, $page, $per_page, 'sessions', 'started_at', $where, $args));
     }
 
     public static function session(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -509,7 +632,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_energy'], $rows);
-        return rest_ensure_response(self::wrap_collection('energy', $serialized, $total, $page, $per_page, 'energy', 'recorded_at'));
+        return rest_ensure_response(self::wrap_collection('energy', $serialized, $total, $page, $per_page, 'energy', 'recorded_at', $where, $args));
     }
 
     public static function alerts(WP_REST_Request $request): WP_REST_Response {
@@ -537,7 +660,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_alert'], $rows);
-        return rest_ensure_response(self::wrap_collection('alerts', $serialized, $total, $page, $per_page, 'alerts', 'occurred_at'));
+        return rest_ensure_response(self::wrap_collection('alerts', $serialized, $total, $page, $per_page, 'alerts', 'occurred_at', $where, $args));
     }
 
     public static function alert(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -563,11 +686,19 @@ final class EZEV_Operations_REST {
         if (!$row) {
             return new WP_Error('not_found', 'Alert not found.', ['status' => 404]);
         }
+        $station_id = (string) $row['station_id'];
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
+        }
         $now = current_time('mysql', true);
-        $wpdb->update($table, ['status' => 'acknowledged', 'acknowledged_at' => $now], ['alert_id' => $aid]);
+        $updated = $wpdb->update($table, ['status' => 'acknowledged', 'acknowledged_at' => $now], ['alert_id' => $aid]);
+        if ($updated === false) {
+            return new WP_Error('alert_update_failed', 'Failed to acknowledge alert.', ['status' => 500]);
+        }
         EZEV_Operations_DB::log('alert_acknowledged', 'Alert ' . $aid . ' acknowledged by user ' . get_current_user_id(), 'info', null, ['alert_id' => $aid]);
-        $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE alert_id = %s", $aid), ARRAY_A);
-        return rest_ensure_response(['alert' => self::serialize_alert($updated ?: [])]);
+        $row_up = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE alert_id = %s", $aid), ARRAY_A);
+        return rest_ensure_response(['alert' => self::serialize_alert($row_up ?: [])]);
     }
 
     public static function resolve_alert(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -578,11 +709,19 @@ final class EZEV_Operations_REST {
         if (!$row) {
             return new WP_Error('not_found', 'Alert not found.', ['status' => 404]);
         }
+        $station_id = (string) $row['station_id'];
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
+        }
         $now = current_time('mysql', true);
-        $wpdb->update($table, ['status' => 'resolved', 'resolved_at' => $now], ['alert_id' => $aid]);
+        $updated = $wpdb->update($table, ['status' => 'resolved', 'resolved_at' => $now], ['alert_id' => $aid]);
+        if ($updated === false) {
+            return new WP_Error('alert_update_failed', 'Failed to resolve alert.', ['status' => 500]);
+        }
         EZEV_Operations_DB::log('alert_resolved', 'Alert ' . $aid . ' resolved by user ' . get_current_user_id(), 'info', null, ['alert_id' => $aid]);
-        $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE alert_id = %s", $aid), ARRAY_A);
-        return rest_ensure_response(['alert' => self::serialize_alert($updated ?: [])]);
+        $row_up = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE alert_id = %s", $aid), ARRAY_A);
+        return rest_ensure_response(['alert' => self::serialize_alert($row_up ?: [])]);
     }
 
     public static function create_alert_ticket(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -593,11 +732,16 @@ final class EZEV_Operations_REST {
         if (!$alert) {
             return new WP_Error('not_found', 'Alert not found.', ['status' => 404]);
         }
+        $station_id = (string) $alert['station_id'];
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
+        }
         $priority = $alert['severity'] === 'critical' ? 'critical' : ($alert['severity'] === 'high' ? 'high' : 'medium');
         $ticket_id = 'TKT-ALT-' . wp_rand(10000, 99999);
         $now = current_time('mysql', true);
         $maintTable = EZEV_Operations_DB::table('maintenance');
-        $wpdb->insert($maintTable, [
+        $inserted = $wpdb->insert($maintTable, [
             'ticket_id'        => $ticket_id,
             'station_id'       => $alert['station_id'],
             'charger_id'       => $alert['charger_id'],
@@ -609,6 +753,9 @@ final class EZEV_Operations_REST {
             'opened_at'        => $now,
             'updated_at'       => $now,
         ]);
+        if ($inserted === false) {
+            return new WP_Error('maintenance_create_failed', 'Failed to create maintenance ticket.', ['status' => 500]);
+        }
         // Also mark alert acknowledged
         $wpdb->update($table, ['status' => 'acknowledged', 'acknowledged_at' => $now], ['alert_id' => $aid]);
         $ticket = $wpdb->get_row($wpdb->prepare("SELECT * FROM $maintTable WHERE ticket_id = %s", $ticket_id), ARRAY_A);
@@ -643,7 +790,7 @@ final class EZEV_Operations_REST {
         $rows = $wpdb->get_results($wpdb->prepare($sql, ...$fetch_args), ARRAY_A) ?: [];
 
         $serialized = array_map([self::class, 'serialize_maintenance'], $rows);
-        return rest_ensure_response(self::wrap_collection('maintenance', $serialized, $total, $page, $per_page, 'maintenance', 'updated_at'));
+        return rest_ensure_response(self::wrap_collection('maintenance', $serialized, $total, $page, $per_page, 'maintenance', 'updated_at', $where, $args));
     }
 
     public static function maintenance_ticket(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -669,14 +816,14 @@ final class EZEV_Operations_REST {
         if ($station_id === '' || $summary === '') {
             return new WP_Error('invalid_data', 'station_id and summary are required.', ['status' => 400]);
         }
-        $allowed = self::allowed_station_keys();
-        if ($allowed !== null && !in_array($station_id, $allowed, true)) {
-            return new WP_Error('forbidden', 'Forbidden: station not in scope.', ['status' => 403]);
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
         }
         $ticket_id = sanitize_text_field((string) ($body['ticket_id'] ?? 'TKT-' . wp_rand(10000, 99999)));
         $now = current_time('mysql', true);
         $table = EZEV_Operations_DB::table('maintenance');
-        $wpdb->insert($table, [
+        $inserted = $wpdb->insert($table, [
             'ticket_id'        => $ticket_id,
             'station_id'       => $station_id,
             'charger_id'       => sanitize_text_field((string) ($body['charger_id'] ?? '')),
@@ -688,6 +835,9 @@ final class EZEV_Operations_REST {
             'opened_at'        => $now,
             'updated_at'       => $now,
         ]);
+        if ($inserted === false) {
+            return new WP_Error('maintenance_create_failed', 'Failed to create maintenance ticket.', ['status' => 500]);
+        }
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $ticket_id), ARRAY_A);
         return new WP_REST_Response(['ticket' => self::serialize_maintenance($row ?: [])], 201);
     }
@@ -700,6 +850,11 @@ final class EZEV_Operations_REST {
         if (!$row) {
             return new WP_Error('not_found', 'Maintenance ticket not found.', ['status' => 404]);
         }
+        $station_id = (string) $row['station_id'];
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
+        }
         $body = (array) $request->get_json_params();
         $fields = [];
         if (isset($body['summary'])) { $fields['summary'] = sanitize_text_field((string) $body['summary']); }
@@ -707,9 +862,12 @@ final class EZEV_Operations_REST {
         if (isset($body['priority'])) { $fields['priority'] = sanitize_key((string) $body['priority']); }
         if (isset($body['assigned_user_id'])) { $fields['assigned_user_id'] = absint($body['assigned_user_id']) ?: null; }
         $fields['updated_at'] = current_time('mysql', true);
-        $wpdb->update($table, $fields, ['ticket_id' => $tid]);
-        $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $tid), ARRAY_A);
-        return rest_ensure_response(['ticket' => self::serialize_maintenance($updated ?: [])]);
+        $updated = $wpdb->update($table, $fields, ['ticket_id' => $tid]);
+        if ($updated === false) {
+            return new WP_Error('maintenance_update_failed', 'Failed to update maintenance ticket.', ['status' => 500]);
+        }
+        $row_up = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $tid), ARRAY_A);
+        return rest_ensure_response(['ticket' => self::serialize_maintenance($row_up ?: [])]);
     }
 
     public static function transition_maintenance(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -719,6 +877,11 @@ final class EZEV_Operations_REST {
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $tid), ARRAY_A);
         if (!$row) {
             return new WP_Error('not_found', 'Maintenance ticket not found.', ['status' => 404]);
+        }
+        $station_id = (string) $row['station_id'];
+        $auth = self::can_manage_station_resource(get_current_user_id(), $station_id);
+        if ($auth !== true) {
+            return $auth;
         }
         $body = (array) $request->get_json_params();
         $new_status = sanitize_key((string) ($body['status'] ?? ''));
@@ -739,9 +902,12 @@ final class EZEV_Operations_REST {
         } elseif ($new_status === 'open') {
             $fields['closed_at'] = null;
         }
-        $wpdb->update($table, $fields, ['ticket_id' => $tid]);
-        $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $tid), ARRAY_A);
-        return rest_ensure_response(['ticket' => self::serialize_maintenance($updated ?: [])]);
+        $updated = $wpdb->update($table, $fields, ['ticket_id' => $tid]);
+        if ($updated === false) {
+            return new WP_Error('maintenance_update_failed', 'Failed to transition maintenance ticket.', ['status' => 500]);
+        }
+        $row_up = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE ticket_id = %s", $tid), ARRAY_A);
+        return rest_ensure_response(['ticket' => self::serialize_maintenance($row_up ?: [])]);
     }
 
     // --- Report Handlers ---

@@ -15,6 +15,7 @@ final class EZEV_Core_Domain {
             'site' => 'EZEV-SITE',
             'membership' => 'EZEV-MEM',
             'station' => 'EZEV-STN',
+            'invitation' => 'EZEV-INV',
         ];
         $prefix = $prefixes[$kind] ?? 'EZEV-ID';
         return $prefix . '-' . strtoupper(wp_generate_password(12, false, false));

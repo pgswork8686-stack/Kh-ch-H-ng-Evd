@@ -88,7 +88,9 @@ final class EZEV_Core_DB {
 
         $sql[] = "CREATE TABLE " . self::table('invitations') . " (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            invitation_ref VARCHAR(100) NULL,
             organization_id BIGINT UNSIGNED NULL,
+            organization_ref VARCHAR(100) NULL,
             email VARCHAR(191) NOT NULL,
             role_key VARCHAR(80) NOT NULL,
             token_hash VARCHAR(191) NOT NULL,
@@ -96,7 +98,7 @@ final class EZEV_Core_DB {
             expires_at DATETIME NULL,
             created_by BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL,
-            PRIMARY KEY (id), KEY email (email), KEY token_hash (token_hash), KEY status (status)
+            PRIMARY KEY (id), UNIQUE KEY invitation_ref (invitation_ref), KEY organization_ref (organization_ref), KEY email (email), KEY token_hash (token_hash), KEY status (status)
         ) $charset;";
 
         $sql[] = "CREATE TABLE " . self::table('audit_logs') . " (
@@ -158,6 +160,21 @@ final class EZEV_Core_DB {
             "UPDATE $saved ss INNER JOIN $station_posts p ON p.ID=ss.station_post_id INNER JOIN $postmeta pm ON pm.post_id=p.ID AND pm.meta_key=%s SET ss.station_id=pm.meta_value WHERE ss.station_id IS NULL OR ss.station_id=''",
             '_ezev_station_id'
         ));
+
+        $inv_table = self::table('invitations');
+        $has_inv_ref = (bool) $wpdb->get_var("SHOW COLUMNS FROM $inv_table LIKE 'invitation_ref'");
+        if (!$has_inv_ref) {
+            $wpdb->query("ALTER TABLE $inv_table ADD COLUMN invitation_ref VARCHAR(100) NULL AFTER id, ADD UNIQUE KEY invitation_ref (invitation_ref)");
+        }
+        $has_org_ref = (bool) $wpdb->get_var("SHOW COLUMNS FROM $inv_table LIKE 'organization_ref'");
+        if (!$has_org_ref) {
+            $wpdb->query("ALTER TABLE $inv_table ADD COLUMN organization_ref VARCHAR(100) NULL AFTER organization_id, ADD KEY organization_ref (organization_ref)");
+        }
+        $wpdb->query("UPDATE $inv_table i INNER JOIN $organizations o ON o.id=i.organization_id SET i.organization_ref=o.organization_id WHERE i.organization_ref IS NULL OR i.organization_ref=''");
+        $inv_rows = $wpdb->get_results("SELECT id FROM $inv_table WHERE invitation_ref IS NULL OR invitation_ref=''", ARRAY_A) ?: [];
+        foreach ($inv_rows as $irow) {
+            $wpdb->update($inv_table, ['invitation_ref' => EZEV_Core_Domain::new_id('invitation')], ['id' => (int) $irow['id']], ['%s'], ['%d']);
+        }
 
         self::migrate_station_relationship_meta();
     }

@@ -97,12 +97,12 @@ final class EZEV_Core_REST {
             [
                 'methods' => WP_REST_Server::EDITABLE,
                 'callback' => [self::class, 'update_organization'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_organization_route'],
             ],
             [
                 'methods' => WP_REST_Server::DELETABLE,
                 'callback' => [self::class, 'delete_organization'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_organization_route'],
             ],
         ]);
 
@@ -116,7 +116,7 @@ final class EZEV_Core_REST {
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [self::class, 'create_site'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_site_route'],
             ],
         ]);
         register_rest_route('ezev/v1', '/sites/(?P<site_id>[A-Za-z0-9._-]+)', [
@@ -128,12 +128,12 @@ final class EZEV_Core_REST {
             [
                 'methods' => WP_REST_Server::EDITABLE,
                 'callback' => [self::class, 'update_site'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_site_route'],
             ],
             [
                 'methods' => WP_REST_Server::DELETABLE,
                 'callback' => [self::class, 'delete_site'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_site_route'],
             ],
         ]);
 
@@ -147,37 +147,37 @@ final class EZEV_Core_REST {
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [self::class, 'create_member'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_membership_route'],
             ],
         ]);
         register_rest_route('ezev/v1', '/organizations/(?P<organization_id>[A-Za-z0-9._-]+)/members/(?P<membership_id>[A-Za-z0-9._-]+)', [
             [
                 'methods' => WP_REST_Server::EDITABLE,
                 'callback' => [self::class, 'update_member'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_membership_route'],
             ],
             [
                 'methods' => WP_REST_Server::DELETABLE,
                 'callback' => [self::class, 'delete_member'],
-                'permission_callback' => [self::class, 'can_manage_organizations'],
+                'permission_callback' => [self::class, 'can_manage_membership_route'],
             ],
         ]);
         register_rest_route('ezev/v1', '/memberships/(?P<membership_id>[A-Za-z0-9._-]+)/sites', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'assign_member_site'],
-            'permission_callback' => [self::class, 'can_manage_organizations'],
+            'permission_callback' => [self::class, 'can_manage_membership_route'],
         ]);
         register_rest_route('ezev/v1', '/memberships/(?P<membership_id>[A-Za-z0-9._-]+)/stations', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'assign_member_station'],
-            'permission_callback' => [self::class, 'can_manage_organizations'],
+            'permission_callback' => [self::class, 'can_manage_membership_route'],
         ]);
 
         // --- GATE 3: Invitations Lifecycle ---
         register_rest_route('ezev/v1', '/organizations/(?P<organization_id>[A-Za-z0-9._-]+)/invitations', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'create_invitation'],
-            'permission_callback' => [self::class, 'can_manage_organizations'],
+            'permission_callback' => [self::class, 'can_manage_invitation_route'],
         ]);
         register_rest_route('ezev/v1', '/invitations/(?P<token>[A-Za-z0-9._-]+)', [
             'methods' => WP_REST_Server::READABLE,
@@ -189,10 +189,10 @@ final class EZEV_Core_REST {
             'callback' => [self::class, 'accept_invitation'],
             'permission_callback' => [self::class, 'authenticated'],
         ]);
-        register_rest_route('ezev/v1', '/invitations/(?P<id>\d+)/revoke', [
+        register_rest_route('ezev/v1', '/invitations/(?P<id>[A-Za-z0-9._-]+)/revoke', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'revoke_invitation'],
-            'permission_callback' => [self::class, 'can_manage_organizations'],
+            'permission_callback' => [self::class, 'can_manage_invitation_route'],
         ]);
     }
 
@@ -425,6 +425,106 @@ final class EZEV_Core_REST {
         return new WP_Error('ezev_forbidden', 'Forbidden: missing organization management capability.', ['status' => 403]);
     }
 
+    public static function can_manage_organization_route(WP_REST_Request $request): bool|WP_Error {
+        $auth = self::authenticated();
+        if ($auth !== true) { return $auth; }
+        $user_id = get_current_user_id();
+        if (current_user_can('manage_options') || current_user_can('ezev_manage_organizations')) {
+            return true;
+        }
+        $method = $request->get_method();
+        if ($method === 'POST') {
+            return new WP_Error('ezev_forbidden', 'Forbidden: global organization creation capability required.', ['status' => 403]);
+        }
+        $org_ref = (string) $request['organization_id'];
+        if (EZEV_Core_Auth::can_manage_organization($user_id, $org_ref)) {
+            return true;
+        }
+        return new WP_Error('ezev_forbidden', 'Forbidden: missing organization management capability for this organization.', ['status' => 403]);
+    }
+
+    public static function can_manage_site_route(WP_REST_Request $request): bool|WP_Error {
+        $auth = self::authenticated();
+        if ($auth !== true) { return $auth; }
+        $user_id = get_current_user_id();
+        if (current_user_can('manage_options') || current_user_can('ezev_manage_organizations')) {
+            return true;
+        }
+        $method = $request->get_method();
+        if ($method === 'POST') {
+            $params = (array) $request->get_json_params();
+            $org_ref = (string) ($params['organization_id'] ?? $request->get_param('organization_id') ?? '');
+            if ($org_ref === '') {
+                return true; // Let create_site return 400 invalid_data
+            }
+            if (EZEV_Core_Auth::can_manage_organization($user_id, $org_ref)) {
+                return true;
+            }
+            return new WP_Error('ezev_forbidden', 'Forbidden: missing permission to create sites in this organization.', ['status' => 403]);
+        }
+        $site_id = (string) $request['site_id'];
+        if ($method === 'DELETE') {
+            $site = EZEV_Core_Domain::site_by_id($site_id);
+            if (!$site) { return true; }
+            if (EZEV_Core_Auth::can_manage_organization($user_id, (string) ($site['organization_ref'] ?? ''))) {
+                return true;
+            }
+            return new WP_Error('ezev_forbidden', 'Forbidden: only organization owners and administrators can delete sites.', ['status' => 403]);
+        }
+        if (EZEV_Core_Auth::can_manage_site($user_id, $site_id)) {
+            return true;
+        }
+        return new WP_Error('ezev_forbidden', 'Forbidden: missing permission to manage this site.', ['status' => 403]);
+    }
+
+    public static function can_manage_membership_route(WP_REST_Request $request): bool|WP_Error {
+        $auth = self::authenticated();
+        if ($auth !== true) { return $auth; }
+        $user_id = get_current_user_id();
+        if (current_user_can('manage_options') || current_user_can('ezev_manage_access')) {
+            return true;
+        }
+        $org_ref = (string) $request['organization_id'];
+        if ($org_ref === '' && !empty($request['membership_id'])) {
+            $m = EZEV_Core_Domain::membership_by_id((string) $request['membership_id']);
+            if (!$m) { return true; }
+            $org_ref = (string) ($m['organization_ref'] ?? '');
+        }
+        if ($org_ref !== '' && EZEV_Core_Auth::can_manage_membership($user_id, $org_ref)) {
+            return true;
+        }
+        return new WP_Error('ezev_forbidden', 'Forbidden: missing membership management capability.', ['status' => 403]);
+    }
+
+    public static function can_manage_invitation_route(WP_REST_Request $request): bool|WP_Error {
+        $auth = self::authenticated();
+        if ($auth !== true) { return $auth; }
+        $user_id = get_current_user_id();
+        if (current_user_can('manage_options') || current_user_can('ezev_manage_access')) {
+            return true;
+        }
+        $org_ref = (string) $request['organization_id'];
+        if ($org_ref === '' && !empty($request['id'])) {
+            global $wpdb;
+            $table = EZEV_Core_DB::table('invitations');
+            $id_val = (string) $request['id'];
+            $inv = is_numeric($id_val)
+                ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d OR invitation_ref = %s", (int) $id_val, $id_val), ARRAY_A)
+                : $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE invitation_ref = %s", $id_val), ARRAY_A);
+            if (!$inv) { return true; }
+            if (!empty($inv['organization_ref'])) {
+                $org_ref = $inv['organization_ref'];
+            } else {
+                $org = $wpdb->get_row($wpdb->prepare("SELECT organization_id FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $inv['organization_id']), ARRAY_A);
+                $org_ref = (string) ($org['organization_id'] ?? '');
+            }
+        }
+        if ($org_ref !== '' && EZEV_Core_Auth::can_manage_membership($user_id, $org_ref)) {
+            return true;
+        }
+        return new WP_Error('ezev_forbidden', 'Forbidden: missing invitation management capability.', ['status' => 403]);
+    }
+
     public static function serialize_organization(array $row): array {
         return [
             'organization_id' => (string) ($row['organization_id'] ?? ''),
@@ -472,7 +572,9 @@ final class EZEV_Core_REST {
 
     public static function serialize_invitation(array $row): array {
         return [
-            'id'              => (int) $row['id'],
+            'id'              => (string) ($row['invitation_ref'] ?: $row['id']),
+            'invitation_id'   => (string) ($row['invitation_ref'] ?: $row['id']),
+            'invitation_ref'  => (string) ($row['invitation_ref'] ?? ''),
             'organization_id' => (string) ($row['organization_ref'] ?? $row['organization_id'] ?? ''),
             'email'           => (string) ($row['email'] ?? ''),
             'role_key'        => (string) ($row['role_key'] ?? 'viewer'),
@@ -601,9 +703,10 @@ final class EZEV_Core_REST {
             return new WP_Error('not_found', 'Organization not found.', ['status' => 404]);
         }
 
-        // Dependency check: Sites, Stations, Members
+        // Dependency check: Sites, Stations, Members, Pending Invitations
         $sitesCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('sites') . " WHERE organization_ref = %s", $id));
         $membersCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('org_members') . " WHERE organization_ref = %s", $id));
+        $pendingInvCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('invitations') . " WHERE (organization_ref = %s OR organization_id = %d) AND status = 'pending'", $id, (int) ($row['id'] ?? 0)));
         $stations = get_posts([
             'post_type'   => EZEV_Core_Stations::POST_TYPE,
             'post_status' => 'any',
@@ -612,8 +715,16 @@ final class EZEV_Core_REST {
             'meta_key'    => '_ezev_organization_id',
             'meta_value'  => $id,
         ]);
-        if ($sitesCount > 0 || $membersCount > 0 || !empty($stations)) {
-            return new WP_Error('resource_has_dependencies', 'Cannot delete organization with active sites, stations, or memberships.', ['status' => 409]);
+        if ($sitesCount > 0 || $membersCount > 0 || !empty($stations) || $pendingInvCount > 0) {
+            return new WP_Error('resource_has_dependencies', 'Cannot delete organization with active dependencies.', [
+                'status' => 409,
+                'dependencies' => [
+                    'sites'               => $sitesCount,
+                    'stations'            => count($stations),
+                    'memberships'         => $membersCount,
+                    'pending_invitations' => $pendingInvCount,
+                ],
+            ]);
         }
 
         $table = EZEV_Core_DB::table('organizations');
@@ -752,7 +863,7 @@ final class EZEV_Core_REST {
             return new WP_Error('not_found', 'Site not found.', ['status' => 404]);
         }
 
-        // Dependency check: Stations linked to this site
+        // Dependency check: Stations linked to this site and member_site_access
         $stations = get_posts([
             'post_type'   => EZEV_Core_Stations::POST_TYPE,
             'post_status' => 'any',
@@ -761,8 +872,15 @@ final class EZEV_Core_REST {
             'meta_key'    => '_ezev_site_id',
             'meta_value'  => $id,
         ]);
-        if (!empty($stations)) {
-            return new WP_Error('resource_has_dependencies', 'Cannot delete site with active stations.', ['status' => 409]);
+        $accessCount = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . EZEV_Core_DB::table('member_site_access') . " WHERE site_ref = %s", $id));
+        if (!empty($stations) || $accessCount > 0) {
+            return new WP_Error('resource_has_dependencies', 'Cannot delete site with active dependencies.', [
+                'status' => 409,
+                'dependencies' => [
+                    'stations'           => count($stations),
+                    'member_site_access' => $accessCount,
+                ],
+            ]);
         }
 
         $table = EZEV_Core_DB::table('sites');
@@ -840,10 +958,11 @@ final class EZEV_Core_REST {
 
     public static function update_member(WP_REST_Request $request): WP_REST_Response|WP_Error {
         global $wpdb;
+        $route_org = EZEV_Core_Domain::normalize_id((string) $request['organization_id']);
         $membership_id = EZEV_Core_Domain::normalize_id((string) $request['membership_id']);
         $m = EZEV_Core_Domain::membership_by_id($membership_id);
-        if (!$m) {
-            return new WP_Error('not_found', 'Membership not found.', ['status' => 404]);
+        if (!$m || ($m['organization_ref'] ?? '') !== $route_org) {
+            return new WP_Error('not_found', 'Membership not found in the specified organization.', ['status' => 404]);
         }
         $user_id = get_current_user_id();
         $org_ref = (string) ($m['organization_ref'] ?? '');
@@ -865,10 +984,11 @@ final class EZEV_Core_REST {
 
     public static function delete_member(WP_REST_Request $request): WP_REST_Response|WP_Error {
         global $wpdb;
+        $route_org = EZEV_Core_Domain::normalize_id((string) $request['organization_id']);
         $membership_id = EZEV_Core_Domain::normalize_id((string) $request['membership_id']);
         $m = EZEV_Core_Domain::membership_by_id($membership_id);
-        if (!$m) {
-            return new WP_Error('not_found', 'Membership not found.', ['status' => 404]);
+        if (!$m || ($m['organization_ref'] ?? '') !== $route_org) {
+            return new WP_Error('not_found', 'Membership not found in the specified organization.', ['status' => 404]);
         }
         $user_id = get_current_user_id();
         $org_ref = (string) ($m['organization_ref'] ?? '');
@@ -975,29 +1095,35 @@ final class EZEV_Core_REST {
             return new WP_Error('invalid_email', 'A valid email address is required.', ['status' => 400]);
         }
         $role_key = sanitize_key((string) ($body['role_key'] ?? 'viewer'));
+        $invitation_ref = EZEV_Core_Domain::new_id('invitation');
         $raw_token = wp_generate_password(32, false);
         $token_hash = hash('sha256', $raw_token);
         $expires_at = gmdate('Y-m-d H:i:s', time() + 7 * 86400); // 7-day TTL
 
         $table = EZEV_Core_DB::table('invitations');
-        $wpdb->insert($table, [
-            'organization_id' => (int) $org['id'],
-            'email'           => $email,
-            'role_key'        => $role_key,
-            'token_hash'      => $token_hash,
-            'status'          => 'pending',
-            'expires_at'      => $expires_at,
-            'created_by'      => $user_id,
-            'created_at'      => current_time('mysql', true),
-        ]);
-        $invitation_id = (int) $wpdb->insert_id;
-        EZEV_Core_DB::log('invitation_created', 'invitation', (string) $invitation_id, ['email' => $email, 'organization_id' => $org_ref]);
+        $inserted = $wpdb->insert($table, [
+            'invitation_ref'   => $invitation_ref,
+            'organization_id'  => (int) $org['id'],
+            'organization_ref' => $org_ref,
+            'email'            => $email,
+            'role_key'         => $role_key,
+            'token_hash'       => $token_hash,
+            'status'           => 'pending',
+            'expires_at'       => $expires_at,
+            'created_by'       => $user_id,
+            'created_at'       => current_time('mysql', true),
+        ], ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s']);
+        if (!$inserted) {
+            return new WP_Error('db_error', 'Failed to create invitation.', ['status' => 500]);
+        }
+        EZEV_Core_DB::log('invitation_created', 'invitation', $invitation_ref, ['email' => $email, 'organization_id' => $org_ref]);
         return new WP_REST_Response([
-            'invitation_id' => $invitation_id,
-            'email'         => $email,
-            'role_key'      => $role_key,
-            'token'         => $raw_token, // Provided once upon creation
-            'expires_at'    => $expires_at,
+            'invitation_id'  => $invitation_ref,
+            'invitation_ref' => $invitation_ref,
+            'email'          => $email,
+            'role_key'       => $role_key,
+            'token'          => $raw_token, // Provided once upon creation
+            'expires_at'     => $expires_at,
         ], 201);
     }
 
@@ -1017,14 +1143,17 @@ final class EZEV_Core_REST {
             $wpdb->update($table, ['status' => 'expired'], ['id' => $row['id']]);
             return new WP_Error('invitation_expired', 'Invitation has expired.', ['status' => 410]);
         }
-        $org = $wpdb->get_row($wpdb->prepare("SELECT organization_id, name FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $row['organization_id']), ARRAY_A);
+        $org = !empty($row['organization_ref'])
+            ? EZEV_Core_Domain::organization_by_id($row['organization_ref'])
+            : $wpdb->get_row($wpdb->prepare("SELECT organization_id, name FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $row['organization_id']), ARRAY_A);
         return rest_ensure_response([
-            'valid'           => true,
-            'email'           => $row['email'],
-            'organization_id' => $org['organization_id'] ?? '',
+            'valid'             => true,
+            'invitation_id'     => $row['invitation_ref'] ?: (string) $row['id'],
+            'email'             => $row['email'],
+            'organization_id'   => $org['organization_id'] ?? '',
             'organization_name' => $org['name'] ?? '',
-            'role_key'        => $row['role_key'],
-            'expires_at'      => $row['expires_at'],
+            'role_key'          => $row['role_key'],
+            'expires_at'        => $row['expires_at'],
         ]);
     }
 
@@ -1050,32 +1179,43 @@ final class EZEV_Core_REST {
             return new WP_Error('email_mismatch', 'Invitation was issued for a different email address.', ['status' => 403]);
         }
 
-        // GATE 3.1: Atomic single-use claim to prevent concurrent duplicate acceptances
+        // Validate referenced organization
+        $org = !empty($inv['organization_ref'])
+            ? EZEV_Core_Domain::organization_by_id($inv['organization_ref'])
+            : $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $inv['organization_id']), ARRAY_A);
+        if (!$org) {
+            return new WP_Error('not_found', 'Referenced organization does not exist.', ['status' => 404]);
+        }
+        $org_ref = (string) $org['organization_id'];
+        $user_id = $current_user->ID;
+        $now = current_time('mysql', true);
+        $memberTable = EZEV_Core_DB::table('org_members');
+
+        // GATE 3.2: Transaction Boundary
+        $wpdb->query('START TRANSACTION');
+
+        // Atomic claim
         $claimed = $wpdb->query($wpdb->prepare(
             "UPDATE $table SET status = 'accepted' WHERE token_hash = %s AND status = 'pending'",
             $token_hash
         ));
         if ($claimed !== 1) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('invitation_already_claimed', 'Invitation already accepted or invalid.', ['status' => 409]);
         }
 
-        $user_id = $current_user->ID;
-        $org = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $inv['organization_id']), ARRAY_A);
-        if (!$org) {
-            return new WP_Error('not_found', 'Referenced organization does not exist.', ['status' => 404]);
-        }
-        $org_ref = (string) $org['organization_id'];
-        $now = current_time('mysql', true);
-
-        // Create or update membership
-        $memberTable = EZEV_Core_DB::table('org_members');
+        // Create or update membership within transaction
         $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $memberTable WHERE organization_ref = %s AND user_id = %d", $org_ref, $user_id), ARRAY_A);
         if ($existing) {
-            $wpdb->update($memberTable, ['role_key' => $inv['role_key'], 'status' => 'active', 'updated_at' => $now], ['id' => $existing['id']]);
+            $up = $wpdb->update($memberTable, ['role_key' => $inv['role_key'], 'status' => 'active', 'updated_at' => $now], ['id' => $existing['id']]);
+            if ($up === false) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('transaction_failed', 'Failed to update membership during invitation claim.', ['status' => 500]);
+            }
             $membership_id = $existing['membership_id'];
         } else {
-            $membership_id = EZEV_Core_Domain::new_id('member');
-            $wpdb->insert($memberTable, [
+            $membership_id = EZEV_Core_Domain::new_id('membership');
+            $ins = $wpdb->insert($memberTable, [
                 'organization_id'  => (int) $org['id'],
                 'organization_ref' => $org_ref,
                 'membership_id'    => $membership_id,
@@ -1085,34 +1225,48 @@ final class EZEV_Core_REST {
                 'created_at'       => $now,
                 'updated_at'       => $now,
             ], ['%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s']);
+            if ($ins === false) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('transaction_failed', 'Failed to create membership during invitation claim.', ['status' => 500]);
+            }
         }
 
-        EZEV_Core_DB::log('invitation_accepted', 'invitation', (string) $inv['id'], ['membership_id' => $membership_id, 'user_id' => $user_id]);
+        $wpdb->query('COMMIT');
+
+        EZEV_Core_DB::log('invitation_accepted', 'invitation', (string) ($inv['invitation_ref'] ?? $inv['id']), ['membership_id' => $membership_id, 'user_id' => $user_id]);
 
         return rest_ensure_response([
-            'accepted'      => true,
-            'membership_id' => $membership_id,
+            'accepted'        => true,
+            'membership_id'   => $membership_id,
             'organization_id' => $org_ref,
-            'role_key'      => $inv['role_key'],
+            'role_key'        => $inv['role_key'],
         ]);
     }
 
     public static function revoke_invitation(WP_REST_Request $request): WP_REST_Response|WP_Error {
         global $wpdb;
-        $id = absint($request['id']);
+        $id_val = (string) $request['id'];
         $table = EZEV_Core_DB::table('invitations');
-        $inv = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id), ARRAY_A);
+        $inv = is_numeric($id_val)
+            ? $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d OR invitation_ref = %s", (int) $id_val, $id_val), ARRAY_A)
+            : $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE invitation_ref = %s", $id_val), ARRAY_A);
         if (!$inv) {
             return new WP_Error('not_found', 'Invitation not found.', ['status' => 404]);
         }
         $user_id = get_current_user_id();
-        $org = $wpdb->get_row($wpdb->prepare("SELECT organization_id FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $inv['organization_id']), ARRAY_A);
-        $org_ref = (string) ($org['organization_id'] ?? '');
+        $org_ref = !empty($inv['organization_ref']) ? $inv['organization_ref'] : '';
+        if ($org_ref === '') {
+            $org = $wpdb->get_row($wpdb->prepare("SELECT organization_id FROM " . EZEV_Core_DB::table('organizations') . " WHERE id = %d", (int) $inv['organization_id']), ARRAY_A);
+            $org_ref = (string) ($org['organization_id'] ?? '');
+        }
         if (!EZEV_Core_Auth::can_manage_membership($user_id, $org_ref)) {
             return new WP_Error('forbidden', 'Forbidden: missing invitation management capability.', ['status' => 403]);
         }
-        $wpdb->update($table, ['status' => 'revoked'], ['id' => $id]);
-        EZEV_Core_DB::log('invitation_revoked', 'invitation', (string) $id);
+        $updated = $wpdb->update($table, ['status' => 'revoked'], ['id' => (int) $inv['id']]);
+        if ($updated === false) {
+            return new WP_Error('db_error', 'Failed to revoke invitation.', ['status' => 500]);
+        }
+        EZEV_Core_DB::log('invitation_revoked', 'invitation', (string) ($inv['invitation_ref'] ?? $inv['id']));
         return rest_ensure_response(['revoked' => true]);
     }
 }

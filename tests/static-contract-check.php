@@ -21,8 +21,8 @@ echo "=== Running Static Contract Verification ===\n";
 
 check_file_contains_regex(
     'wp-content/plugins/ezev-core/ezev-core.php',
-    "/define\(\s*['\"]EZEV_CORE_DB_VERSION['\"]\s*,\s*['\"]1\.1\.0['\"]\s*\)/",
-    "EZEV_CORE_DB_VERSION constant is defined as 1.1.0"
+    "/define\(\s*['\"]EZEV_CORE_DB_VERSION['\"]\s*,\s*['\"]1\.2\.0['\"]\s*\)/",
+    "EZEV_CORE_DB_VERSION constant is defined as 1.2.0"
 );
 
 check_file_contains_regex(
@@ -184,6 +184,69 @@ check_file_contains_regex(
     '/data_mode/',
     'Operations REST returns data_mode metadata distinguishing manual/demo from API'
 );
+
+// GATE 3.2: Request-Aware Mutation Authorizers
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/can_manage_organization_route/',
+    'Core REST defines request-aware can_manage_organization_route'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/can_manage_site_route/',
+    'Core REST defines request-aware can_manage_site_route'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/can_manage_membership_route/',
+    'Core REST defines request-aware can_manage_membership_route'
+);
+
+// GATE 3.2: Target-Specific Operations Mutation Authorization
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    '/can_manage_station_resource/',
+    'Operations REST defines target-specific can_manage_station_resource'
+);
+
+// GATE 3.2: Invitation Transaction Integrity
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/START\s+TRANSACTION/',
+    'Core REST implements transaction boundary in accept_invitation'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/ROLLBACK/',
+    'Core REST implements transaction rollback on failure in accept_invitation'
+);
+
+// GATE 3.2: Safe Delete Dependency Protections
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/pending_invitations/',
+    'Core REST checks pending_invitations before deleting organization'
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    '/member_site_access/',
+    'Core REST checks member_site_access before deleting site'
+);
+
+// GATE 3.2: Test Portability (No hardcoded Windows path in test runner)
+$gate3Test = 'tests/gate3-integration-gate.php';
+if (file_exists($gate3Test)) {
+    $gate3Content = file_get_contents($gate3Test);
+    if (strpos($gate3Content, 'C:/Users/Admin/Local Sites') !== false) {
+        $errors[] = "TEST SAFETY: tests/gate3-integration-gate.php contains hardcoded local path C:/Users/Admin/Local Sites";
+    } else {
+        echo "  [OK] tests/gate3-integration-gate.php is portable (no hardcoded Windows paths)\n";
+    }
+}
 
 // Verify that ezev_view_internal is NOT used as bypass in allowed_station_post_ids
 $authFile = 'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php';

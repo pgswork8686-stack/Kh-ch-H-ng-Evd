@@ -56,7 +56,18 @@ WordPress roles select a portal and coarse capabilities; membership `role_key` a
   - The recipient email recorded in the invitation must strictly match the authenticated user's normalized account email (HTTP 403 `email_mismatch`).
   - An atomic single-use conditional SQL update (`UPDATE ... SET status='accepted' WHERE token_hash=... AND status='pending'`) guarantees that concurrent requests cannot double-claim an invitation token (HTTP 409 `invitation_already_claimed`).
 - **Operational Mutation Role_key Verification:** Operational mutations (creating/transitioning maintenance tickets, acknowledging/resolving alerts) cannot be authorized solely by the WP role `ezev_business`. The system enforces membership `role_key`: only `owner`, `admin`, `operations`, and `site_manager` are authorized. Members with `viewer` or `finance` roles are strictly blocked with HTTP 403 `rest_forbidden`.
-- **Safe Delete / Dependency Protection:** Deletion of an Organization or Site is fail-closed. If active dependent entities exist (Sites, Stations, Memberships), the delete operation is rejected with HTTP 409 `resource_has_dependencies` to prevent orphaned records.
+- **Safe Delete / Dependency Protection:** Deletion of an Organization or Site is fail-closed. If active dependent entities exist (Sites, Stations, Memberships, pending Invitations, or member site access grants), the delete operation is rejected with HTTP 409 `resource_has_dependencies` to prevent orphaned records.
+
+## Gate 3.2 Plugin API & Security Freeze Rules
+
+- **Request-Aware Core Mutation Callbacks:** Route-level permission callbacks (`can_manage_organization_route`, `can_manage_site_route`, `can_manage_membership_route`, `can_manage_invitation_route`) inspect the request URL parameters (`organization_id`, `site_id`, `membership_id`) and authenticate Business Owners and Admins to manage their own tenant resources without requiring global WordPress `manage_options`.
+- **Target-Specific Station Resource Mutation Authorization:** In Operations REST (`/wp-json/ezev-ops/v1/*`), mutation handlers (`acknowledge_alert`, `resolve_alert`, `create_alert_ticket`, `create_maintenance`, `update_maintenance`, `transition_maintenance`) load the target record, resolve its `station_id`, and invoke `EZEV_Operations_REST::can_manage_station_resource($user_id, $station_id)`:
+  - Sequence: Load entity -> 404 (if not found) -> Extract `station_id` -> Authorize target station manage -> 403 (if forbidden) -> Validate payload -> DB mutation -> Audit -> Response.
+  - A user who is `site_manager` in Tenant A and `viewer` in Tenant B CANNOT mutate alerts or tickets belonging to Tenant B's stations (strict HTTP 403 `rest_forbidden`, DB remains completely untouched).
+- **Invitation Transaction Integrity (InnoDB Rollback):** `accept_invitation()` encapsulates status claim and membership creation/upgrade in an explicit database transaction (`START TRANSACTION` / `COMMIT` / `ROLLBACK`). If membership persistence or lookup fails, changes are rolled back and the invitation remains in `pending` status.
+- **Membership Route Organization Consistency:** Mutating or deleting a member via `/organizations/{organization_id}/members/{membership_id}` strictly verifies that the membership belongs to the organization specified in the URL. If a mismatch occurs, the request returns HTTP 404 `not_found`.
+- **Scoped Freshness Calculation:** `calculate_freshness()` accepts the caller's station scope and filters. The `MAX(timestamp)` query is scoped identically to the data query. When a dataset is empty, it returns `last_updated: null`, `freshness_seconds: null`, and `is_stale: true` rather than fabricating timestamps with `current_time()`.
+
 
 ## Required behavior
  
