@@ -287,7 +287,11 @@ final class EZEV_Core_Admin {
     public static function handle_create_site(): void {
         if (!current_user_can('ezev_manage_organizations')) { wp_die('Access denied.'); } check_admin_referer('ezev_create_site'); global $wpdb; $now=current_time('mysql',true);
         $organization_id=EZEV_Core_Domain::normalize_id((string)wp_unslash($_POST['organization_id']??''));$org=EZEV_Core_Domain::organization_by_id($organization_id);if(!$org){wp_die('Invalid organization.');}$site_id=EZEV_Core_Domain::normalize_id((string)wp_unslash($_POST['site_id']??''));
-        $wpdb->insert(EZEV_Core_DB::table('sites'),['organization_id'=>(int)$org['id'],'organization_ref'=>$organization_id,'site_id'=>$site_id,'site_code'=>$site_id,'name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'address'=>sanitize_textarea_field(wp_unslash($_POST['address']??'')),'status'=>'active','created_at'=>$now,'updated_at'=>$now]);
+        $wpdb->insert(
+            EZEV_Core_DB::table('sites'),
+            ['organization_id'=>(int)$org['id'],'organization_ref'=>$organization_id,'site_id'=>$site_id,'site_code'=>$site_id,'name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'address'=>sanitize_textarea_field(wp_unslash($_POST['address']??'')),'status'=>'active','created_at'=>$now,'updated_at'=>$now],
+            ['%d','%s','%s','%s','%s','%s','%s','%s','%s']
+        );
         EZEV_Core_DB::log('site_created','site',$site_id); wp_safe_redirect(admin_url('admin.php?page=ezev-organizations&ezev_notice=saved')); exit;
     }
 

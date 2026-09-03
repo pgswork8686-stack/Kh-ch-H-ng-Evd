@@ -118,7 +118,9 @@ final class EZEV_Core_DB {
 
     public static function maybe_upgrade(): void {
         $installed = (string) get_option('ezev_core_db_version', '0');
-        if (version_compare($installed, EZEV_CORE_DB_VERSION, '<')) {
+        // If legacy version format (e.g. 4.0.0, 4.0.1, 4.1.0) was stored, or installed < current schema version
+        $needs_upgrade = version_compare($installed, EZEV_CORE_DB_VERSION, '<') || version_compare($installed, '2.0.0', '>=');
+        if ($needs_upgrade) {
             self::install();
         }
     }
