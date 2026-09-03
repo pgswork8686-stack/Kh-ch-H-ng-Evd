@@ -1,0 +1,309 @@
+﻿/**
+ * Station Detail Page Styles
+ * Compliance: Checkpoint 4.1C & UI Reference "Chi tiết trạm.png"
+ */
+
+.ezev-detail-page {
+  padding-top: var(--ezev-space-8);
+  padding-bottom: var(--ezev-space-20);
+  background-color: #F8FAFC;
+}
+
+/* Breadcrumbs */
+.ezev-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--ezev-space-2);
+  font-size: 0.875rem;
+  color: var(--ezev-color-text-muted);
+  margin-bottom: var(--ezev-space-6);
+}
+
+.ezev-breadcrumbs a:hover {
+  color: var(--ezev-color-primary);
+}
+
+/* Main Top Grid (Hero Gallery + Summary Card) */
+.ezev-detail-top-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-8);
+  margin-bottom: var(--ezev-space-10);
+}
+
+@media (min-width: 1024px) {
+  .ezev-detail-top-grid {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+/* Hero Media Gallery */
+.ezev-detail-gallery {
+  position: relative;
+  border-radius: var(--ezev-radius-2xl);
+  overflow: hidden;
+  height: 380px;
+  background-color: var(--ezev-color-dark-900);
+}
+
+@media (min-width: 768px) {
+  .ezev-detail-gallery {
+    height: 440px;
+  }
+}
+
+.ezev-detail-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ezev-detail-gallery-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+}
+
+/* Station Summary Card */
+.ezev-detail-summary-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-2xl);
+  padding: var(--ezev-space-8);
+  box-shadow: var(--ezev-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ezev-space-5);
+}
+
+.ezev-detail-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ezev-color-dark-900);
+  line-height: 1.25;
+}
+
+.ezev-detail-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: var(--ezev-color-text-muted);
+}
+
+.ezev-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ezev-space-4);
+  background: #F8FAFC;
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-4);
+}
+
+.ezev-detail-kpi-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.ezev-detail-kpi-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ezev-color-dark-900);
+}
+
+.ezev-detail-kpi-lbl {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--ezev-color-text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.ezev-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ezev-space-3);
+}
+
+/* Tab Navigation */
+.ezev-detail-tabs {
+  display: flex;
+  gap: var(--ezev-space-6);
+  border-bottom: 2px solid var(--ezev-color-border);
+  margin-bottom: var(--ezev-space-8);
+  overflow-x: auto;
+}
+
+.ezev-tab-btn {
+  background: none;
+  border: none;
+  padding: var(--ezev-space-3) 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ezev-color-text-muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+
+.ezev-tab-btn.active {
+  color: var(--ezev-color-primary);
+  border-color: var(--ezev-color-primary);
+}
+
+/* Tab Content Sections */
+.ezev-detail-section-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-10);
+}
+
+@media (min-width: 1024px) {
+  .ezev-detail-section-grid {
+    grid-template-columns: 1.6fr 1fr;
+  }
+}
+
+.ezev-panel {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-6);
+  margin-bottom: var(--ezev-space-6);
+}
+
+.ezev-panel-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--ezev-space-4);
+  color: var(--ezev-color-dark-900);
+}
+
+/* Connectors Grid */
+.ezev-connectors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--ezev-space-4);
+}
+
+.ezev-connector-box {
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-lg);
+  padding: var(--ezev-space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #F8FAFC;
+}
+
+.ezev-connector-icon {
+  font-size: 2rem;
+  margin-bottom: var(--ezev-space-2);
+}
+
+.ezev-connector-type {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ezev-color-dark-900);
+}
+
+.ezev-connector-power {
+  font-size: 0.875rem;
+  color: var(--ezev-color-text-muted);
+  margin-bottom: var(--ezev-space-3);
+}
+
+/* Amenities List */
+.ezev-amenities-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ezev-space-3);
+}
+
+@media (min-width: 640px) {
+  .ezev-amenities-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ezev-amenity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--ezev-color-gray-700);
+  background: #F8FAFC;
+  padding: 8px 12px;
+  border-radius: var(--ezev-radius-md);
+}
+
+/* Station Information Table */
+.ezev-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ezev-info-table tr {
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ezev-info-table th {
+  text-align: left;
+  padding: 10px 0;
+  font-size: 0.875rem;
+  color: #94A3B8;
+  font-weight: 500;
+  width: 35%;
+}
+
+.ezev-info-table td {
+  padding: 10px 0;
+  font-size: 0.875rem;
+  color: var(--ezev-color-gray-800);
+  font-weight: 500;
+}
+
+/* App Promo Banner */
+.ezev-app-promo-box {
+  background: linear-gradient(135deg, #090D1A 0%, #18233C 100%);
+  border-radius: var(--ezev-radius-2xl);
+  padding: var(--ezev-space-8);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ezev-space-4);
+  align-items: center;
+  text-align: center;
+  margin: var(--ezev-space-12) 0;
+}
+
+@media (min-width: 768px) {
+  .ezev-app-promo-box {
+    flex-direction: row;
+    text-align: left;
+    justify-content: space-between;
+  }
+}
+
+/* Nearby Stations Carousel / Grid */
+.ezev-nearby-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-4);
+  margin-top: var(--ezev-space-6);
+}
+
+@media (min-width: 640px) {
+  .ezev-nearby-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ezev-nearby-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
