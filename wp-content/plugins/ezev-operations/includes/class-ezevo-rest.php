@@ -272,23 +272,29 @@ final class EZEV_Operations_REST {
         $dedup_key = $event_id !== '' ? 'evt_' . $event_id : 'fp_' . $ts . '_' . hash('sha256', $raw);
         $dedup_hash = hash('sha256', $id . '|' . $dedup_key);
 
-        // Atomic insert into webhook_receipts table
+        // Atomic INSERT IGNORE into webhook_receipts — fail-closed:
+        // false   = DB failure (table missing, connection error) → 503 receipt_storage_failure
+        // 0       = duplicate key (INSERT IGNORE suppressed) → 409 duplicate_webhook
+        // 1       = new row inserted → process webhook
         $receipt_table = EZEV_Operations_DB::table('webhook_receipts');
+        $expires_at = gmdate('Y-m-d H:i:s', time() + 86400); // 24-hour TTL
         $inserted = $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO $receipt_table (integration_id, dedup_hash, event_id, created_at) VALUES (%d, %s, %s, %s)",
+            "INSERT IGNORE INTO $receipt_table (integration_id, dedup_hash, event_id, created_at, expires_at) VALUES (%d, %s, %s, %s, %s)",
             $id,
             $dedup_hash,
             $event_id ?: null,
-            current_time('mysql', true)
+            current_time('mysql', true),
+            $expires_at
         ));
 
-        // If duplicate key exists, INSERT IGNORE returns 0 rows affected
+        if ($inserted === false) {
+            // DB failure — fail-closed, do NOT process the webhook
+            return new WP_Error('receipt_storage_failure', 'Webhook receipt storage failed. Delivery rejected.', ['status' => 503]);
+        }
         if ($inserted === 0) {
+            // Duplicate detected — reject with 409
             return new WP_Error('duplicate_webhook', 'Duplicate webhook delivery rejected.', ['status' => 409]);
         }
-
-        // Fallback transient cache with 10-minute TTL for secondary fast check
-        set_transient('ezevo_wh_' . substr($dedup_hash, 0, 32), 1, 600);
 
         EZEV_Operations_DB::log('webhook_received', 'Webhook verified and received from ' . $integration['name'], 'info', $id, ['payload' => json_decode($raw, true)]);
         return rest_ensure_response(['received' => true]);

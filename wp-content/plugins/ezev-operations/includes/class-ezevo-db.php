@@ -58,13 +58,13 @@ final class EZEV_Operations_DB {
         ) $c;";
         $sql[]="CREATE TABLE ".self::table('webhook_receipts')." (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, integration_id BIGINT UNSIGNED NOT NULL, dedup_hash VARCHAR(64) NOT NULL,
-            event_id VARCHAR(191) NULL, created_at DATETIME NOT NULL,
-            PRIMARY KEY(id), UNIQUE KEY dedup_hash(dedup_hash), KEY integration_id(integration_id), KEY created_at(created_at)
+            event_id VARCHAR(191) NULL, created_at DATETIME NOT NULL, expires_at DATETIME NOT NULL,
+            PRIMARY KEY(id), UNIQUE KEY dedup_hash(dedup_hash), KEY integration_id(integration_id), KEY expires_at(expires_at)
         ) $c;";
         foreach($sql as $s){dbDelta($s);}
         self::ensure_schema_columns();
         self::migrate_legacy_connectors();
-        update_option('ezevo_db_version',defined('EZEVO_DB_VERSION')?EZEVO_DB_VERSION:'1.1.0',false);
+        update_option('ezevo_db_version',defined('EZEVO_DB_VERSION')?EZEVO_DB_VERSION:'1.2.0',false);
     }
 
     private static function ensure_schema_columns(): void {
@@ -81,24 +81,50 @@ final class EZEV_Operations_DB {
         }
         $has_prov_key = $wpdb->get_var("SHOW INDEX FROM $energy_table WHERE Key_name = 'provider_station_time'");
         if (!$has_prov_key) {
-            // Drop old station_time index if exists, and add provider_station_time
             $old_idx = $wpdb->get_var("SHOW INDEX FROM $energy_table WHERE Key_name = 'station_time'");
             if ($old_idx) {
                 $wpdb->query("ALTER TABLE $energy_table DROP INDEX station_time");
             }
             $wpdb->query("ALTER TABLE $energy_table ADD UNIQUE KEY provider_station_time (provider, station_id, recorded_at)");
         }
+        // Gate 2.2: Add expires_at column to webhook_receipts if upgrading from 1.1.0
+        $receipt_table = self::table('webhook_receipts');
+        $table_exists = (string) $wpdb->get_var("SHOW TABLES LIKE '$receipt_table'") === $receipt_table;
+        if ($table_exists) {
+            $has_expires = $wpdb->get_var("SHOW COLUMNS FROM $receipt_table LIKE 'expires_at'");
+            if (!$has_expires) {
+                // Add expires_at defaulting to created_at + 24 hours for existing rows
+                $wpdb->query("ALTER TABLE $receipt_table ADD COLUMN expires_at DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00' AFTER created_at");
+                $wpdb->query("UPDATE $receipt_table SET expires_at = DATE_ADD(created_at, INTERVAL 24 HOUR) WHERE expires_at = '2000-01-01 00:00:00'");
+                $wpdb->query("ALTER TABLE $receipt_table ADD INDEX expires_at(expires_at)");
+            }
+        }
     }
 
     public static function maybe_upgrade(): void {
         $installed = (string) get_option('ezevo_db_version', '0');
-        $target = defined('EZEVO_DB_VERSION') ? EZEVO_DB_VERSION : '1.1.0';
-        // Explicit known legacy versions from before dedicated DB versioning was split from plugin version
-        $legacy_versions = ['0', '1.0.0', '1.0.1', '1.0.2', '1.0.3', '4.0.0', '4.0.1'];
+        $target = defined('EZEVO_DB_VERSION') ? EZEVO_DB_VERSION : '1.2.0';
+        // Explicit known legacy versions — 1.1.0 is now a known legacy needing 1.2.0 schema additions
+        $legacy_versions = ['0', '1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.1.0', '4.0.0', '4.0.1'];
         $needs_upgrade = version_compare($installed, $target, '<') || in_array($installed, $legacy_versions, true);
         if ($needs_upgrade) {
             self::install();
         }
+    }
+
+    /**
+     * Purge expired webhook receipts older than their expires_at timestamp.
+     * Safe to call on schedule — does NOT affect receipts still in active replay window.
+     */
+    public static function cleanup_webhook_receipts(): int {
+        global $wpdb;
+        $receipt_table = self::table('webhook_receipts');
+        $table_exists = (string) $wpdb->get_var("SHOW TABLES LIKE '$receipt_table'") === $receipt_table;
+        if (!$table_exists) { return 0; }
+        $deleted = $wpdb->query(
+            $wpdb->prepare("DELETE FROM $receipt_table WHERE expires_at < %s LIMIT 1000", current_time('mysql', true))
+        );
+        return is_int($deleted) ? $deleted : 0;
     }
 
     private static function migrate_legacy_connectors(): void {

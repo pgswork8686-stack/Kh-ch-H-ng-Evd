@@ -50,17 +50,23 @@ function assertCheck(string $desc, bool $condition, string $failureDetails = '')
 
 echo "\n=== [TEST GROUP 1] Plugin Bootstrap, Schema & Migration ===\n";
 assertCheck("Plugin ezev-operations is active", is_plugin_active('ezev-operations/ezev-operations.php'));
-assertCheck("Constant EZEVO_DB_VERSION is defined and equals 1.1.0", defined('EZEVO_DB_VERSION') && EZEVO_DB_VERSION === '1.1.0');
+assertCheck("Constant EZEVO_DB_VERSION is defined and equals 1.2.0", defined('EZEVO_DB_VERSION') && EZEVO_DB_VERSION === '1.2.0');
 
 // Trigger install / upgrade
 EZEV_Operations_DB::install();
 $installedDbVer = (string) get_option('ezevo_db_version');
-assertCheck("Installed DB version option is 1.1.0", $installedDbVer === '1.1.0', "Got: $installedDbVer");
+assertCheck("Installed DB version option is 1.2.0", $installedDbVer === '1.2.0', "Got: $installedDbVer");
 
 // Verify monotonic upgrade migration check without downgrade
 update_option('ezevo_db_version', '1.0.1');
 EZEV_Operations_DB::maybe_upgrade();
-assertCheck("Monotonic upgrade restores legacy 1.0.1 to 1.1.0", get_option('ezevo_db_version') === '1.1.0');
+assertCheck("Monotonic upgrade restores legacy 1.0.1 to 1.2.0", get_option('ezevo_db_version') === '1.2.0');
+
+// GATE 2.2: Verify 1.1.0 → 1.2.0 migration via maybe_upgrade() only (NOT install() first)
+// Simulate a site that was on 1.1.0 (Gate 2.1 state) — maybe_upgrade must do the upgrade
+update_option('ezevo_db_version', '1.1.0');
+EZEV_Operations_DB::maybe_upgrade();
+assertCheck("maybe_upgrade() upgrades 1.1.0 to 1.2.0 without calling install() first", get_option('ezevo_db_version') === '1.2.0');
 
 // Verify legacy 4.0.1 migration specifically preserves chargers and generates connectors
 global $wpdb;
@@ -75,7 +81,7 @@ $wpdb->replace(EZEV_Operations_DB::table('chargers'), [
 ]);
 update_option('ezevo_db_version', '4.0.1');
 EZEV_Operations_DB::maybe_upgrade();
-assertCheck("Legacy 4.0.1 is recognized and upgraded to 1.1.0", get_option('ezevo_db_version') === '1.1.0');
+assertCheck("Legacy 4.0.1 is recognized and upgraded to 1.2.0", get_option('ezevo_db_version') === '1.2.0');
 $migratedConn = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Operations_DB::table('connectors') . " WHERE charger_id=%s", $testLegacyCharger), ARRAY_A);
 assertCheck("Legacy charger connector was successfully migrated into connectors table", !empty($migratedConn) && $migratedConn['charger_id'] === $testLegacyCharger);
 
@@ -95,6 +101,11 @@ foreach ($expectedTables as $t) {
     $exists = (string) $wpdb->get_var("SHOW TABLES LIKE '$full'") === $full;
     assertCheck("Table exists: {$full}", $exists);
 }
+
+// Verify webhook_receipts has expires_at column (Gate 2.2 requirement)
+$receiptTable = EZEV_Operations_DB::table('webhook_receipts');
+$receiptCols = $wpdb->get_col("DESCRIBE $receiptTable", 0) ?: [];
+assertCheck("webhook_receipts has expires_at column", in_array('expires_at', $receiptCols, true));
 
 // Check connector columns
 $connTable = EZEV_Operations_DB::table('connectors');
@@ -280,17 +291,85 @@ wp_set_current_user($contentUser->ID);
 $resContent = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
 assertCheck("Internal Content (ezev_view_internal only) GET /overview returns 403", $resContent->get_status() === 403);
 
-// 7. Internal Operations -> 200 OK
-$opsUser = getOrCreateUser('test_ops_matrix', 'ezev_internal_ops');
+// GATE 2.2: Test that ezev_view_internal alone CANNOT bypass station scope
+// Create a user with ONLY ezev_view_internal (no manage_options, no ezev_view_all_stations)
+$internalOnlyUser = getOrCreateUser('test_internal_scope_bypass', 'ezev_internal_business');
+wp_set_current_user($internalOnlyUser->ID);
+// This user has no station assignments, so allowed_station_keys should be empty (not all stations)
+$scopeTestAllowed = EZEV_Core_Auth::allowed_station_keys($internalOnlyUser->ID);
+assertCheck("ezev_view_internal alone does NOT grant all-station scope (no bypass)", $scopeTestAllowed === []);
+
+// 7. Internal Operations -> 200 OK but SCOPED to assigned stations (not all-station bypass)
+// Create 2 stations, assign ops user to only 1, verify chargers endpoint returns only that station
+$station_a = 'EZEV-VN-DEMO-001'; // existing demo station
+$station_b = 'EZEV-VN-DEMO-002'; // another existing demo station
+$opsUser = getOrCreateUser('test_ops_scoped', 'ezev_internal_ops');
+
+// Assign opsUser to ONLY station_a via member_station_access
+$opsOrgRef = 'ORG-TEST-GATE';
+$opsMembershipId = 'MEMB-GATE-OPS-' . $opsUser->ID;
+$wpdb->replace(EZEV_Core_DB::table('org_members'), [
+    'membership_id'    => $opsMembershipId,
+    'organization_id'  => 1,
+    'organization_ref' => $opsOrgRef,
+    'user_id'          => $opsUser->ID,
+    'role_key'         => 'operations',
+    'status'           => 'active',
+    'created_at'       => current_time('mysql', true),
+    'updated_at'       => current_time('mysql', true),
+]);
+$stationA_post_id = EZEV_Core_Stations::find_by_station_id($station_a);
+if ($stationA_post_id) {
+    $wpdb->replace(EZEV_Core_DB::table('member_station_access'), [
+        'member_id'       => 1,
+        'station_post_id' => $stationA_post_id,
+        'membership_ref'  => $opsMembershipId,
+        'station_id'      => $station_a,
+        'created_at'      => current_time('mysql', true),
+    ]);
+}
+
 wp_set_current_user($opsUser->ID);
 $resOps = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
 assertCheck("Internal Ops (with ezev_view_operations) GET /overview returns 200", $resOps->get_status() === 200);
+$opsScope = $resOps->get_data()['scope'] ?? '';
+assertCheck("Internal Ops user is scoped (restricted, NOT all)", $opsScope === 'restricted');
 
-// 8. Internal Technical -> 200 OK
-$techUser = getOrCreateUser('test_tech_matrix', 'ezev_internal_technical');
+$resOpsChargers = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/chargers'));
+$opsChargers = $resOpsChargers->get_data()['chargers'] ?? [];
+$opsBadStation = false;
+foreach ($opsChargers as $ch) {
+    if (($ch['station_id'] ?? '') !== $station_a) { $opsBadStation = true; break; }
+}
+assertCheck("Internal Ops only sees chargers from assigned station ($station_a), NOT $station_b", !$opsBadStation && !empty($opsChargers));
+
+// 8. Internal Technical -> same scoped behavior, NOT all-station bypass
+$techUser = getOrCreateUser('test_tech_scoped', 'ezev_internal_technical');
+$techMembershipId = 'MEMB-GATE-TECH-' . $techUser->ID;
+$wpdb->replace(EZEV_Core_DB::table('org_members'), [
+    'membership_id'    => $techMembershipId,
+    'organization_id'  => 1,
+    'organization_ref' => $opsOrgRef,
+    'user_id'          => $techUser->ID,
+    'role_key'         => 'operations',
+    'status'           => 'active',
+    'created_at'       => current_time('mysql', true),
+    'updated_at'       => current_time('mysql', true),
+]);
+if ($stationA_post_id) {
+    $wpdb->replace(EZEV_Core_DB::table('member_station_access'), [
+        'member_id'       => 1,
+        'station_post_id' => $stationA_post_id,
+        'membership_ref'  => $techMembershipId,
+        'station_id'      => $station_a,
+        'created_at'      => current_time('mysql', true),
+    ]);
+}
 wp_set_current_user($techUser->ID);
 $resTech = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
 assertCheck("Internal Technical (with ezev_view_operations) GET /overview returns 200", $resTech->get_status() === 200);
+$techScope = $resTech->get_data()['scope'] ?? '';
+assertCheck("Internal Technical user is scoped (restricted, NOT all)", $techScope === 'restricted');
 
 // 9. Administrator -> 200 OK (all scope)
 $adminUser = get_user_by('login', 'admin');
@@ -311,6 +390,7 @@ $sampleSessionDto = ($resSessionsDto->get_data()['sessions'] ?? [])[0] ?? [];
 assertCheck("Session DTO has session_id", !empty($sampleSessionDto['session_id']));
 assertCheck("Session DTO does NOT expose numeric ID", !array_key_exists('id', $sampleSessionDto));
 assertCheck("Session DTO does NOT expose provider_payload", !array_key_exists('provider_payload', $sampleSessionDto));
+
 
 // 10. Scoped Business Site Manager test
 $scopedStation = 'EZEV-VN-DEMO-001';
@@ -474,6 +554,51 @@ $reqValidOtherIntegration->set_header('x-ezev-event-id', $eventId);
 $reqValidOtherIntegration->set_body($testPayload);
 $resOtherIntegration = rest_do_request($reqValidOtherIntegration);
 assertCheck("Same event_id delivered to different integration is accepted (no collision)", $resOtherIntegration->get_status() === 200);
+
+// 8. Receipt retention cleanup: purge expired receipts, verify active dedup still works
+// Insert a receipt with expires_at in the past
+$receiptTable = EZEV_Operations_DB::table('webhook_receipts');
+$oldHash = hash('sha256', 'test_old_expired_receipt_' . wp_rand(1, 99999));
+$wpdb->insert($receiptTable, [
+    'integration_id' => $integrationId,
+    'dedup_hash'     => $oldHash,
+    'event_id'       => 'old_evt',
+    'created_at'     => gmdate('Y-m-d H:i:s', time() - 86400 - 100), // 1 day + 100s ago
+    'expires_at'     => gmdate('Y-m-d H:i:s', time() - 100),         // expired 100s ago
+]);
+$beforeCleanup = (int) $wpdb->get_var("SELECT COUNT(*) FROM $receiptTable WHERE dedup_hash='$oldHash'");
+$cleaned = EZEV_Operations_DB::cleanup_webhook_receipts();
+$afterCleanup = (int) $wpdb->get_var("SELECT COUNT(*) FROM $receiptTable WHERE dedup_hash='$oldHash'");
+assertCheck("cleanup_webhook_receipts() removed expired receipt", $beforeCleanup === 1 && $afterCleanup === 0 && $cleaned >= 1);
+
+// Verify the dedup still works for the ACTIVE receipt (the valid delivery above was NOT expired)
+$reqDupAfterCleanup = new WP_REST_Request('POST', "/ezev-ops/v1/webhook/$integrationId");
+$reqDupAfterCleanup->set_header('x-ezev-timestamp', (string)$currentTs);
+$reqDupAfterCleanup->set_header('x-ezev-signature', $validSig);
+$reqDupAfterCleanup->set_header('x-ezev-event-id', $eventId);
+$reqDupAfterCleanup->set_body($testPayload);
+assertCheck("Dedup still works for active receipts after cleanup", rest_do_request($reqDupAfterCleanup)->get_status() === 409);
+
+// 9. GATE 2.2: DB error path — drop receipt table temporarily, verify fail-closed 503
+// This simulates receipt storage failure: table unavailable
+$receiptTableBackup = $wpdb->prefix . 'ezev_webhook_receipts_gate22backup';
+$wpdb->query("RENAME TABLE $receiptTable TO $receiptTableBackup");
+
+$dbErrPayload = json_encode(['event' => 'db_error_test', 'seq' => wp_rand(1, 999)]);
+$dbErrTs = time();
+$dbErrSig = hash_hmac('sha256', $dbErrTs . '.' . $dbErrPayload, $webhookSecret);
+$dbErrEventId = 'dberr_' . wp_rand(100000, 999999);
+$reqDbErr = new WP_REST_Request('POST', "/ezev-ops/v1/webhook/$integrationId");
+$reqDbErr->set_header('x-ezev-timestamp', (string)$dbErrTs);
+$reqDbErr->set_header('x-ezev-signature', $dbErrSig);
+$reqDbErr->set_header('x-ezev-event-id', $dbErrEventId);
+$reqDbErr->set_body($dbErrPayload);
+$resDbErr = rest_do_request($reqDbErr);
+assertCheck("Webhook with receipt storage failure returns 503 fail-closed (not 200)", $resDbErr->get_status() === 503);
+assertCheck("Webhook DB error returns receipt_storage_failure code", ($resDbErr->get_data()['code'] ?? '') === 'receipt_storage_failure');
+
+// Restore the table
+$wpdb->query("RENAME TABLE $receiptTableBackup TO $receiptTable");
 
 echo "\n==========================================\n";
 echo "SUMMARY: {$totalChecks} checks, {$failedChecks} failures.\n";

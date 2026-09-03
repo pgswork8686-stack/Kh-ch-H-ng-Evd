@@ -53,7 +53,9 @@ final class EZEV_Core_Auth {
     }
 
     public static function allowed_station_post_ids(int $user_id): array {
-        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_view_internal')) {
+        // Only manage_options or explicit ezev_view_all_stations cap grants all-station scope.
+        // ezev_view_internal is a portal-access cap only — it does NOT bypass resource scope.
+        if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_view_all_stations')) {
             return array_map(static fn($s) => (int) $s['post_id'], EZEV_Core_Stations::list());
         }
         $access = self::user_access($user_id);
