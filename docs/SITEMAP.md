@@ -158,7 +158,7 @@ Bon trang sau day duoc chi dinh la **P0: CORE PUBLIC EXPERIENCE**. Toan bo kien 
 
 1. **01. Home (/):** Khoi dau hanh trinh nguoi dung. Tich hop du lieu thong ke mang luoi thoi gian thuc (KPIs), mini Google Map, danh sach tram noi bat hoac tram gan nhat theo Geolocation.
 2. **02. Find a Charger (/find-a-charger):** Ban do tim kiem tram sac toan dien voi Google Maps JS API + Google Places Autocomplete. Ho tro loc theo chuan cong, cong suat, tinh trang hoat dong (live availability). Ty le hien thi Desktop 35% danh sach - 65% ban do; Mobile ban do toan man hinh kem bottom sheet.
-3. **03. Station Detail (/stations/[slug]):** Chi tiet chuyen sau ve tram sac: cong suat, tinh trang tung dau sac (Connector), bieu gia, tien ich xung quanh, chi duong, va metadata nguon du lieu (data_mode, last_updated, reshness_seconds). Internal identity dinh danh bang station_id (khong dung WordPress post ID).
+3. **03. Station Detail (/stations/[slug]):** Chi tiet chuyen sau ve tram sac: cong suat, tinh trang tung dau sac (Connector), bieu gia, tien ich xung quanh, chi duong, va metadata nguon du lieu (data_mode, last_updated, reshness_seconds). Internal identity dinh danh bang station_id (khong dung WordPress post ID).
 4. **04. Charging Network (/charging-network):** Trang gioi thieu quy mo ha tang mang luoi tram sac EZEV tai Viet Nam, Philippines, Trung Quoc va quoc te. Trinh bay ban do do phu vi mo va chi so nang luc ky thuat cua EZEV.
 
 ---

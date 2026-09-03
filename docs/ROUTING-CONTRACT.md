@@ -117,7 +117,7 @@ Khi nguoi dung dang nhap thanh cong thong qua /login (hoac submit form POST /eze
 
 | Role cua User | Primary Portal Destination | Route Redirection |
 | :--- | :--- | :--- |
-| dministrator (co manage_options) | Technical WordPress Admin | /wp-admin/ |
+| dministrator (co manage_options) | Technical WordPress Admin | /wp-admin/ |
 | ezev_internal_ops / ezev_internal_technical | EZEV Operations Portal | /admin/ |
 | ezev_business | Business Organization Portal | /portal/business/ |
 | ezev_partner / ezev_investor | Partner & Investor Portal | /portal/partner/ |

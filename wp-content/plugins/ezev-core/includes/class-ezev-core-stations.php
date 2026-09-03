@@ -179,6 +179,7 @@ final class EZEV_Core_Stations {
             : null;
         return [
             'station_id' => (string) $row['station_id'],
+            'slug' => (string) ($row['slug'] ?? ($post instanceof WP_Post ? $post->post_name : '')),
             'name' => (string) $row['name'],
             'description' => (string) $row['description'],
             'address' => [
@@ -216,6 +217,7 @@ final class EZEV_Core_Stations {
         return [
             'post_id' => (int) $post->ID,
             'station_id' => (string) $get('station_id'),
+            'slug' => (string) ($post->post_name ?? ''),
             'name' => get_the_title($post),
             'description' => wp_strip_all_tags($post->post_content),
             'country_code' => (string) $get('country_code'),
@@ -240,5 +242,25 @@ final class EZEV_Core_Stations {
             'url' => get_permalink($post),
             'thumbnail' => get_the_post_thumbnail_url($post, 'medium') ?: '',
         ];
+    }
+
+    public static function find_by_slug(string $slug): ?int {
+        $slug = sanitize_title($slug);
+        if ($slug === '') { return null; }
+        $posts = get_posts([
+            'name'        => $slug,
+            'post_type'   => self::POST_TYPE,
+            'post_status' => 'publish',
+            'numberposts' => 1,
+            'fields'      => 'ids',
+        ]);
+        return !empty($posts) ? (int) $posts[0] : null;
+    }
+
+    public static function get_station_id_by_slug(string $slug): ?string {
+        $post_id = self::find_by_slug($slug);
+        if (!$post_id) { return null; }
+        $station_id = (string) get_post_meta($post_id, '_ezev_station_id', true);
+        return $station_id !== '' ? $station_id : null;
     }
 }

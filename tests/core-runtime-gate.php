@@ -217,6 +217,18 @@ if ($cust) {
     $res_cust_login = $rest_server->dispatch($req_cust_login);
     check($res_cust_login->get_status() === 200, 'Customer login 200 OK', 'Status: ' . $res_cust_login->get_status());
     check(str_contains($res_cust_login->get_data()['redirect_url'] ?? '', '/account'), 'Customer redirected to /account/');
+// Multi-role destination priority verification
+$multi_user = new WP_User();
+$multi_user->roles = ['ezev_customer', 'ezev_business'];
+check(str_contains(EZEV_Core_Auth::destination_for_user($multi_user), '/portal/business/'), 'Multi-role customer+business redirects to /portal/business/');
+
+$multi_internal = new WP_User();
+$multi_internal->roles = ['ezev_customer', 'ezev_partner', 'ezev_internal_ops'];
+check(str_contains(EZEV_Core_Auth::destination_for_user($multi_internal), '/admin/'), 'Multi-role customer+partner+internal redirects to /admin/');
+
+$multi_partner = new WP_User();
+$multi_partner->roles = ['ezev_customer', 'ezev_investor'];
+check(str_contains(EZEV_Core_Auth::destination_for_user($multi_partner), '/portal/partner/'), 'Multi-role customer+investor redirects to /portal/partner/');
 }
 
 // Logout

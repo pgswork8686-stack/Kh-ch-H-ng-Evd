@@ -260,6 +260,29 @@ if (file_exists($authFile)) {
     }
 }
 
+// PHASE 4.0.1: Verify no ASCII control characters in docs/
+$docsDir = 'docs';
+if (is_dir($docsDir)) {
+    $docFiles = glob($docsDir . '/*.md');
+    $corruptDocs = [];
+    foreach ($docFiles as $df) {
+        $content = file_get_contents($df);
+        $len = strlen($content);
+        for ($i = 0; $i < $len; $i++) {
+            $ord = ord($content[$i]);
+            if (($ord >= 0 && $ord <= 8) || $ord === 11 || $ord === 12 || ($ord >= 14 && $ord <= 31)) {
+                $corruptDocs[] = basename($df);
+                break;
+            }
+        }
+    }
+    if (!empty($corruptDocs)) {
+        $errors[] = "DOCUMENT CORRUPTION: Found ASCII control characters in: " . implode(', ', $corruptDocs);
+    } else {
+        echo "  [OK] docs/*.md free of ASCII control characters\n";
+    }
+}
+
 if (!empty($errors)) {
     echo "\nSTATIC CONTRACT FAILURES:\n";
     foreach ($errors as $e) {
