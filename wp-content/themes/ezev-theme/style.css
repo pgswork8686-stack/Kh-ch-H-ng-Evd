@@ -1,0 +1,39 @@
+﻿/*
+Theme Name: EZEV Fast Charging Theme
+Theme URI: https://ezev.vn
+Author: EVD Energy Group
+Author URI: https://evd.vn
+Description: Official responsive WordPress theme for EZEV Fast Charging Network. Built for Phase 4.1 P0 Core Public Experience.
+Version: 1.0.0
+License: Proprietary
+Text Domain: ezev-theme
+Requires at least: 6.0
+Requires PHP: 8.1
+*/
+
+/* Reset & Normalize */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--ezev-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ezev-color-text, #1E293B);
+  background-color: var(--ezev-color-bg, #FFFFFF);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+}

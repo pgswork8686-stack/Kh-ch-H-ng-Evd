@@ -1,0 +1,98 @@
+﻿/**
+ * EZEV Design Tokens & System Variables
+ * Source: EZEV Global Brand Guidelines & Phase 4.1 Specification
+ */
+:root {
+  /* Typography */
+  --ezev-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ezev-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Primary Brand Colors */
+  --ezev-color-primary: #73B72A;          /* EZEV Vibrant Lime Green */
+  --ezev-color-primary-hover: #62A021;
+  --ezev-color-primary-active: #538A1B;
+  --ezev-color-primary-light: #EAF6DC;
+  --ezev-color-primary-lighter: #F4FBEF;
+  --ezev-color-primary-contrast: #090D1A;
+
+  /* Dark Navy & Slate (Core Brand Backgrounds) */
+  --ezev-color-dark-900: #090D1A;         /* Ultra dark hero/footer */
+  --ezev-color-dark-800: #0E162B;         /* Section dark */
+  --ezev-color-dark-700: #18233C;         /* Card surface dark */
+  --ezev-color-dark-600: #263554;         /* Border dark */
+
+  /* Neutrals & Grays */
+  --ezev-color-white: #FFFFFF;
+  --ezev-color-gray-50: #F8FAFC;
+  --ezev-color-gray-100: #F1F5F9;
+  --ezev-color-gray-200: #E2E8F0;
+  --ezev-color-gray-300: #CBD5E1;
+  --ezev-color-gray-400: #94A3B8;
+  --ezev-color-gray-500: #64748B;
+  --ezev-color-gray-600: #475569;
+  --ezev-color-gray-700: #334155;
+  --ezev-color-gray-800: #1E293B;
+  --ezev-color-gray-900: #0F172A;
+
+  /* Semantic Status Colors */
+  --ezev-status-available: #10B981;       /* Green */
+  --ezev-status-available-bg: #ECFDF5;
+  --ezev-status-charging: #3B82F6;        /* Blue */
+  --ezev-status-charging-bg: #EFF6FF;
+  --ezev-status-maintenance: #F59E0B;     /* Amber */
+  --ezev-status-maintenance-bg: #FFFBEB;
+  --ezev-status-offline: #EF4444;         /* Red */
+  --ezev-status-offline-bg: #FEF2F2;
+  --ezev-status-demo: #8B5CF6;            /* Purple */
+  --ezev-status-demo-bg: #F5F3FF;
+
+  /* Text & Surface Tokens */
+  --ezev-color-text: #0F172A;
+  --ezev-color-text-muted: #64748B;
+  --ezev-color-text-inverse: #FFFFFF;
+  --ezev-color-text-inverse-muted: #94A3B8;
+  --ezev-color-border: #E2E8F0;
+  --ezev-color-bg: #FFFFFF;
+  --ezev-color-bg-subtle: #F8FAFC;
+
+  /* Spacing Scale */
+  --ezev-space-1: 0.25rem;   /* 4px */
+  --ezev-space-2: 0.5rem;    /* 8px */
+  --ezev-space-3: 0.75rem;   /* 12px */
+  --ezev-space-4: 1rem;      /* 16px */
+  --ezev-space-5: 1.25rem;   /* 20px */
+  --ezev-space-6: 1.5rem;    /* 24px */
+  --ezev-space-8: 2rem;      /* 32px */
+  --ezev-space-10: 2.5rem;   /* 40px */
+  --ezev-space-12: 3rem;     /* 48px */
+  --ezev-space-16: 4rem;     /* 64px */
+  --ezev-space-20: 5rem;     /* 80px */
+  --ezev-space-24: 6rem;     /* 96px */
+
+  /* Border Radius */
+  --ezev-radius-xs: 0.25rem; /* 4px */
+  --ezev-radius-sm: 0.375rem;/* 6px */
+  --ezev-radius-md: 0.5rem;  /* 8px */
+  --ezev-radius-lg: 0.75rem; /* 12px */
+  --ezev-radius-xl: 1rem;    /* 16px */
+  --ezev-radius-2xl: 1.5rem; /* 24px */
+  --ezev-radius-full: 9999px;
+
+  /* Shadows */
+  --ezev-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --ezev-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --ezev-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --ezev-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --ezev-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --ezev-shadow-drawer: -4px 0 24px rgba(0, 0, 0, 0.15);
+
+  /* Layout Containers */
+  --ezev-container-max: 1280px;
+  --ezev-container-padding: 1.5rem;
+  --ezev-header-height: 76px;
+
+  /* Transitions */
+  --ezev-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ezev-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ezev-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
