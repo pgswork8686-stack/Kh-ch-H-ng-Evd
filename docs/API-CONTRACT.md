@@ -84,11 +84,16 @@ Requires login. Clears the WordPress session and returns a login redirect.
 
 ## Operations namespace: `/wp-json/ezev-ops/v1`
 
-Observed read endpoints: `/overview`, `/chargers`, `/energy`, `/sessions`, and `/alerts`. They require login and filter records to allowed stable station keys; administrators/internal viewers receive all records. The present permission callback does not require an operations capability.
+Read endpoints: `/overview`, `/chargers`, `/connectors`, `/energy`, `/sessions`, and `/alerts`.
+- **Authorization**: Requires login and operational capability (`ezev_view_operations`, `ezev_view_internal`, or `manage_options`). Callers without this capability receive `403 Forbidden`.
+- **Scoping**: Records are filtered to allowed stable station keys for scoped tenant users; administrators/internal viewers receive all records (`scope: 'all'`).
+- `GET /overview` returns `provider`, `scope` (`all` or `restricted`), and aggregate `data` including `connectors_total`.
+- `GET /connectors` returns `{ "connectors": [...] }` representing physical connector entities linked to chargers and stations.
 
-`GET /overview` returns `provider`, `scope` (`all` or `restricted`), and aggregate `data`. Collection endpoints return a single plural collection property.
-
-`POST /webhook/{integration_id}` accepts provider payloads. If a webhook secret is configured, `X-EZEV-Signature` must equal the lowercase hex HMAC-SHA256 of the raw body. The current implementation permits unsigned requests when no secret exists; production integrations must not rely on that behavior.
+`POST /webhook/{integration_id}` accepts provider payloads:
+- **Secret requirement**: A webhook secret must be configured on the integration; requests without a secret configured return `401 missing_secret`.
+- **Replay protection**: Headers `X-EZEV-Timestamp` and `X-EZEV-Signature` are required. The timestamp must be within a ±300 second window of the server's current UTC time. Requests outside this window return `401 replay_rejected`.
+- **Signature verification**: `X-EZEV-Signature` must equal the lowercase hex `hash_hmac('sha256', $timestamp . '.' . $raw_body, $secret)`. Invalid signatures return `401 invalid_signature`.
 
 ## Error policy
 

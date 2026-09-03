@@ -21,18 +21,20 @@ Station master data is currently stored as `ezev_station` posts plus `_ezev_*` p
 
 | Table | Stable key / purpose | Important relationships |
 | --- | --- | --- |
-| `ezev_chargers` | `charger_id` unique | stable `station_id`; connector data currently embedded |
-| `ezev_sessions` | `session_id` unique | stable station and charger IDs |
-| `ezev_energy` | numeric row ID | station/time samples; no idempotency key yet |
+| `ezev_chargers` | `charger_id` unique | stable `station_id`; physical charger EVSE |
+| `ezev_connectors` | `connector_id` unique | normalized `charger_id`, `station_id`, `connector_type`, `max_power_kw`, `status`, `current_power_kw` |
+| `ezev_sessions` | `session_id` unique | stable `station_id`, `charger_id`, and `connector_id` |
+| `ezev_energy` | unique `(station_id, recorded_at)` | idempotent station/time energy samples (grid, EV, solar, BESS, peak) |
 | `ezev_alerts` | `alert_id` unique | station and optional charger IDs |
 | `ezev_maintenance` | `ticket_id` unique | station, charger, optional WordPress assignee |
 | `ezev_integrations` | numeric configuration ID | encrypted credentials, mapping/settings JSON |
 | `ezev_sync_logs` | append-only numeric ID | optional integration, level/event/context |
 
-The required connector domain is not fully normalized: `connector_id` and connector type live on the charger row. A separate connector table is required if chargers can have multiple independently addressable connectors.
+The connector domain is fully normalized into `Station → Charger → Connector → Session`. Multiple physical connectors are linked to each charger via `charger_id` and `station_id`.
 
 ## Installation and migrations
 
-Core defines schema version `1.1.0`, runs an idempotent upgrade check during normal boot, applies `dbDelta()`, backfills stable business IDs, then updates `ezev_core_db_version`. Plugin release version and schema version are deliberately independent. Future schema changes must remain idempotent and be tested against both clean-install and upgrade fixtures.
+- **Core**: Defines schema version `1.1.0`, runs an idempotent upgrade check during normal boot, applies `dbDelta()`, backfills stable business IDs, then updates `ezev_core_db_version`.
+- **Operations**: Defines `EZEVO_DB_VERSION` = `1.1.0` independent of plugin release version. `maybe_upgrade()` runs on boot and activation, creates `ezev_connectors`, ensures `connector_id` on sessions, ensures unique index `station_time (station_id, recorded_at)` on energy, and executes legacy connector migration. No demo data is seeded on activation; Demo Import is explicit.
 
 Database foreign keys are not declared. Until a deliberate foreign-key policy is adopted, application services must validate referenced stable IDs and handle deletion/orphan cleanup transactionally.

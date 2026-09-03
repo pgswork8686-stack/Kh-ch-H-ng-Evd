@@ -11,6 +11,7 @@
 if (!defined('ABSPATH')) { exit; }
 
 define('EZEVO_VERSION','4.0.1');
+define('EZEVO_DB_VERSION','1.1.0');
 define('EZEVO_FILE',__FILE__);
 define('EZEVO_DIR',plugin_dir_path(__FILE__));
 define('EZEVO_URL',plugin_dir_url(__FILE__));
@@ -19,6 +20,7 @@ require_once EZEVO_DIR.'includes/class-ezevo-db.php';
 require_once EZEVO_DIR.'includes/class-ezevo-secrets.php';
 require_once EZEVO_DIR.'includes/providers/interface-ezevo-provider.php';
 require_once EZEVO_DIR.'includes/providers/class-ezevo-manual-provider.php';
+require_once EZEVO_DIR.'includes/providers/class-ezevo-demo-provider.php';
 require_once EZEVO_DIR.'includes/providers/class-ezevo-http-provider.php';
 require_once EZEVO_DIR.'includes/class-ezevo-provider-manager.php';
 require_once EZEVO_DIR.'includes/class-ezevo-sync.php';

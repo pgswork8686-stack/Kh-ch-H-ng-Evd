@@ -33,9 +33,12 @@ WordPress roles select a portal and coarse capabilities; membership `role_key` a
 - Saved-station actions operate on stable station IDs and are user-owned records.
 - Only users with `manage_options` may enter `/wp-admin`; other authenticated users are redirected to their branded portal.
 
-## Remaining Operations gap
+## Operations API enforcement
 
-Operations read routes still need a dedicated capability/action matrix in the Operations milestone. Core resource scoping alone must not be treated as authorization to view every operational field.
+- Operations read routes (`/wp-json/ezev-ops/v1/*`) require both authentication and an operational capability (`ezev_view_operations`, `ezev_view_internal`, or `manage_options`). Callers lacking this capability (e.g. `ezev_customer`) are rejected with HTTP 403 `rest_forbidden`.
+- Tenant callers with operational capabilities are restricted to their assigned stable station keys (`allowed_station_post_ids` -> `station_id` mapping). Only stations within scope are returned.
+- Operations mutations (manual data saves, provider activation, sync triggers) require `manage_options` or `ezev_manage_operations`.
+- Webhooks require integration secret verification and strict timestamp window verification (±300 seconds) against replay attacks.
 
 ## Required behavior
 

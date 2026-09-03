@@ -19,6 +19,7 @@ final class EZEV_Operations_HTTP_Provider implements EZEV_Operations_Provider {
     private function get(string $kind): array { $url=$this->url($kind); if(!$url)return []; $r=wp_remote_get($url,['timeout'=>(int)($this->settings['timeout']??15),'headers'=>$this->headers()]); if(is_wp_error($r))throw new RuntimeException($r->get_error_message());$code=wp_remote_retrieve_response_code($r);if($code<200||$code>=300)throw new RuntimeException('HTTP '.$code);$d=json_decode(wp_remote_retrieve_body($r),true);return is_array($d)?$d:[]; }
     public function test_connection(): array { try{$kind=!empty($this->settings['health_endpoint'])?'health':'chargers';$r=$this->get($kind);return ['ok'=>true,'message'=>'Connection successful. Response received from provider.','sample'=>array_slice($r,0,1)];}catch(Throwable $e){return ['ok'=>false,'message'=>$e->getMessage()];} }
     public function fetch_chargers(): array { return $this->normalize($this->get('chargers'),'chargers'); }
+    public function fetch_connectors(): array { return $this->normalize($this->get('connectors'),'connectors'); }
     public function fetch_sessions(): array { return $this->normalize($this->get('sessions'),'sessions'); }
     public function fetch_energy(): array { return $this->normalize($this->get('energy'),'energy'); }
     public function fetch_alerts(): array { return $this->normalize($this->get('alerts'),'alerts'); }
