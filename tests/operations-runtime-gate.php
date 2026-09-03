@@ -305,12 +305,25 @@ $station_a = 'EZEV-VN-DEMO-001'; // existing demo station
 $station_b = 'EZEV-VN-DEMO-002'; // another existing demo station
 $opsUser = getOrCreateUser('test_ops_scoped', 'ezev_internal_ops');
 
-// Assign opsUser to ONLY station_a via member_station_access
+// Ensure test organization exists and fetch its auto-increment ID
 $opsOrgRef = 'ORG-TEST-GATE';
+$orgTable = EZEV_Core_DB::table('organizations');
+$wpdb->replace($orgTable, [
+    'organization_id' => $opsOrgRef,
+    'org_code'        => 'TESTGATE',
+    'name'            => 'Gate Testing Org',
+    'type'            => 'business',
+    'status'          => 'active',
+    'created_at'      => current_time('mysql', true),
+    'updated_at'      => current_time('mysql', true),
+]);
+$opsOrgDbId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $orgTable WHERE organization_id = %s", $opsOrgRef));
+
+// Assign opsUser to ONLY station_a via member_station_access
 $opsMembershipId = 'MEMB-GATE-OPS-' . $opsUser->ID;
 $wpdb->replace(EZEV_Core_DB::table('org_members'), [
     'membership_id'    => $opsMembershipId,
-    'organization_id'  => 1,
+    'organization_id'  => $opsOrgDbId,
     'organization_ref' => $opsOrgRef,
     'user_id'          => $opsUser->ID,
     'role_key'         => 'operations',
@@ -318,10 +331,11 @@ $wpdb->replace(EZEV_Core_DB::table('org_members'), [
     'created_at'       => current_time('mysql', true),
     'updated_at'       => current_time('mysql', true),
 ]);
+$opsMemberDbId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('org_members') . " WHERE membership_id = %s", $opsMembershipId));
 $stationA_post_id = EZEV_Core_Stations::find_by_station_id($station_a);
 if ($stationA_post_id) {
     $wpdb->replace(EZEV_Core_DB::table('member_station_access'), [
-        'member_id'       => 1,
+        'member_id'       => $opsMemberDbId,
         'station_post_id' => $stationA_post_id,
         'membership_ref'  => $opsMembershipId,
         'station_id'      => $station_a,
@@ -348,7 +362,7 @@ $techUser = getOrCreateUser('test_tech_scoped', 'ezev_internal_technical');
 $techMembershipId = 'MEMB-GATE-TECH-' . $techUser->ID;
 $wpdb->replace(EZEV_Core_DB::table('org_members'), [
     'membership_id'    => $techMembershipId,
-    'organization_id'  => 1,
+    'organization_id'  => $opsOrgDbId,
     'organization_ref' => $opsOrgRef,
     'user_id'          => $techUser->ID,
     'role_key'         => 'operations',
@@ -356,9 +370,10 @@ $wpdb->replace(EZEV_Core_DB::table('org_members'), [
     'created_at'       => current_time('mysql', true),
     'updated_at'       => current_time('mysql', true),
 ]);
+$techMemberDbId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM " . EZEV_Core_DB::table('org_members') . " WHERE membership_id = %s", $techMembershipId));
 if ($stationA_post_id) {
     $wpdb->replace(EZEV_Core_DB::table('member_station_access'), [
-        'member_id'       => 1,
+        'member_id'       => $techMemberDbId,
         'station_post_id' => $stationA_post_id,
         'membership_ref'  => $techMembershipId,
         'station_id'      => $station_a,
@@ -412,10 +427,12 @@ $wpdb->replace($orgTable, [
     'updated_at' => current_time('mysql', true),
 ]);
 
+$scopedOrgDbId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $orgTable WHERE organization_id = %s", 'ORG-TEST-GATE'));
+
 $membershipId = 'MEMB-TEST-SCOPE-' . $scopedUser->ID;
 $wpdb->replace($memberTable, [
     'membership_id' => $membershipId,
-    'organization_id' => 1,
+    'organization_id' => $scopedOrgDbId,
     'organization_ref' => 'ORG-TEST-GATE',
     'user_id' => $scopedUser->ID,
     'role_key' => 'site_manager',
@@ -423,12 +440,13 @@ $wpdb->replace($memberTable, [
     'created_at' => current_time('mysql', true),
     'updated_at' => current_time('mysql', true),
 ]);
+$scopedMemberDbId = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM $memberTable WHERE membership_id = %s", $membershipId));
 
 // Map member to only $scopedStation
 $post_id = EZEV_Core_Stations::find_by_station_id($scopedStation);
 if ($post_id) {
     $wpdb->replace($stationAccessTable, [
-        'member_id' => 1,
+        'member_id' => $scopedMemberDbId,
         'station_post_id' => $post_id,
         'membership_ref' => $membershipId,
         'station_id' => $scopedStation,

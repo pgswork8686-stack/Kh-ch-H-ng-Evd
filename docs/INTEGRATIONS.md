@@ -15,13 +15,19 @@ The archived v1 theme's `map-demo.jpg` and hard-coded pins are visual placeholde
 Known limitations:
 
 - OAuth2 token acquisition/refresh is not implemented.
-- Responses are not schema-validated before normalization.
-- Retries, circuit breaking, pagination, rate limits, and cursor/checkpoint persistence are absent.
-- Overview can fan out to four upstream calls.
-- Webhooks fail open when no secret is configured and log decoded payloads without redaction.
-- Energy ingestion lacks an upstream event key and is not idempotent.
+- Responses are validated against required field definitions and type casts before storage in the normalized local DB.
+- Webhooks enforce fail-closed replay protection:
+  - Missing integration secret returns `401 missing_secret`.
+  - Missing or malformed timestamp returns `401 missing_timestamp`.
+  - Timestamp skew > 300s returns `401 replay_rejected`.
+  - Invalid HMAC signature returns `401 invalid_signature`.
+  - Atomic deduplication is keyed by `integration_id` + event fingerprint (`X-EZEV-Event-ID` or payload hash).
+  - Duplicate deliveries are rejected with `409 duplicate_webhook`.
+  - Database receipt storage failures immediately fail-closed with `503 receipt_storage_failure`.
+  - Receipts are assigned a 24-hour retention TTL (`expires_at`) and pruned by background cron.
+- Energy ingestion is idempotent via `(provider, station_id, recorded_at)` unique constraint and records `provider_record_id`.
+- Data flow is strictly unidirectional: `Provider -> Validation -> Local Normalized DB -> DTO Serializer -> REST Output`. REST endpoints never proxy client calls directly to external vendor systems.
 
-Provider implementations must normalize vendor fields before storage or client exposure and must publish source, mode, and freshness. Manual/demo data must never be labeled realtime.
 
 ## Future operational services
 

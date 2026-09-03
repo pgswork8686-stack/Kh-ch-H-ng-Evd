@@ -82,18 +82,78 @@ Public entry point with `username`, `password`, and optional `remember`. Establi
 
 Requires login. Clears the WordPress session and returns a login redirect.
 
+### Core Entity CRUD & Access Management
+
+#### Organizations: `/wp-json/ezev/v1/organizations`
+- `GET /organizations`: List organizations with filtering (`type`, `status`). Returns `{ "organizations": [...] }`.
+- `POST /organizations`: Requires `ezev_manage_organizations`. Creates an organization with stable `organization_id`. Returns 201.
+- `GET /organizations/{organization_id}`: Detail of an organization.
+- `PUT|PATCH /organizations/{organization_id}`: Requires `ezev_manage_organizations`. Update organization.
+- `DELETE /organizations/{organization_id}`: Soft/hard delete organization.
+
+#### Sites: `/wp-json/ezev/v1/sites`
+- `GET /sites`: List sites, filterable by `organization_id`. Returns `{ "sites": [...] }`.
+- `POST /sites`: Requires `ezev_manage_organizations` or org admin. Creates site with stable `site_id`. Returns 201.
+- `GET /sites/{site_id}`: Site detail.
+- `PUT|PATCH /sites/{site_id}`: Update site.
+- `DELETE /sites/{site_id}`: Delete site.
+
+#### Memberships & Scopes: `/wp-json/ezev/v1/organizations/{organization_id}/members`
+- `GET /organizations/{organization_id}/members`: List organization members.
+- `POST /organizations/{organization_id}/members`: Assign member with `user_id`, `role_key`.
+- `PUT|PATCH /organizations/{organization_id}/members/{membership_id}`: Update member role or status.
+- `DELETE /organizations/{organization_id}/members/{membership_id}`: Remove member.
+- `POST /memberships/{membership_id}/sites`: Grant site-level scope.
+- `POST /memberships/{membership_id}/stations`: Grant station-level scope.
+
+#### Invitations Lifecycle: `/wp-json/ezev/v1/organizations/{organization_id}/invitations`
+- `POST /organizations/{organization_id}/invitations`: Create an invitation token with email, role, and 7-day TTL.
+- `GET /invitations/{token}`: Validate invitation token publicly before acceptance.
+- `POST /invitations/{token}/accept`: Authenticated user accepts invitation, creating an active membership.
+- `POST /invitations/{id}/revoke`: Cancel a pending invitation.
+
 ## Operations namespace: `/wp-json/ezev-ops/v1`
 
-Read endpoints: `/overview`, `/chargers`, `/connectors`, `/energy`, `/sessions`, and `/alerts`.
-- **Authorization**: Requires login and operational capability (`ezev_view_operations`, `ezev_view_internal`, or `manage_options`). Callers without this capability receive `403 Forbidden`.
-- **Scoping**: Records are filtered to allowed stable station keys for scoped tenant users; administrators/internal viewers receive all records (`scope: 'all'`).
-- `GET /overview` returns `provider`, `scope` (`all` or `restricted`), and aggregate `data` including `connectors_total`.
-- `GET /connectors` returns `{ "connectors": [...] }` representing physical connector entities linked to chargers and stations.
+### Collections & Query Parameters
+Endpoints support pagination and filtering: `?page=1&per_page=50&station_id=...&status=...&from_date=...&to_date=...`.
+Response wrapper:
+```json
+{
+  "data": [...],
+  "pagination": { "page": 1, "per_page": 50, "total": 120, "total_pages": 3 },
+  "meta": { "source": "Demo Provider", "fetched_at": "2026-09-03T04:20:00Z", "freshness_seconds": 12 }
+}
+```
 
-`POST /webhook/{integration_id}` accepts provider payloads:
-- **Secret requirement**: A webhook secret must be configured on the integration; requests without a secret configured return `401 missing_secret`.
-- **Replay protection**: Headers `X-EZEV-Timestamp` and `X-EZEV-Signature` are required. The timestamp must be within a ±300 second window of the server's current UTC time. Requests outside this window return `401 replay_rejected`.
-- **Signature verification**: `X-EZEV-Signature` must equal the lowercase hex `hash_hmac('sha256', $timestamp . '.' . $raw_body, $secret)`. Invalid signatures return `401 invalid_signature`.
+- `GET /overview`: High-level aggregate KPIs.
+- `GET /chargers`: List chargers with filters.
+- `GET /connectors`: List connectors.
+- `GET /sessions`: Charging sessions (filtered by date/station/user).
+- `GET /energy`: Energy telemetry samples.
+- `GET /alerts`: System alerts.
+- `GET /maintenance`: Maintenance tickets.
+
+### Detail Endpoints
+- `GET /chargers/{charger_id}`: Single charger detail.
+- `GET /connectors/{connector_id}`: Single connector detail.
+- `GET /sessions/{session_id}`: Single session detail.
+- `GET /alerts/{alert_id}`: Single alert detail.
+- `GET /maintenance/{ticket_id}`: Single maintenance ticket detail.
+
+### Maintenance & Alert Mutations
+- `POST /maintenance`: Create maintenance ticket.
+- `PUT|PATCH /maintenance/{ticket_id}`: Update ticket fields / assignee.
+- `POST /maintenance/{ticket_id}/transition`: Transition status (`open` -> `in_progress` -> `resolved` -> `closed`).
+- `POST /alerts/{alert_id}/acknowledge`: Mark alert acknowledged.
+- `POST /alerts/{alert_id}/resolve`: Mark alert resolved.
+- `POST /alerts/{alert_id}/create-ticket`: Escalate alert directly into a maintenance ticket.
+
+### Reports
+- `GET /reports/summary`: Aggregate operational metrics over specified date range.
+- `GET /reports/performance`: Investor-oriented network performance and utilization KPIs.
+
+### Webhook Ingestion
+- `POST /webhook/{integration_id}`: Authenticated provider payload receiver. Strict fail-closed atomic deduplication with 24-hour retention.
 
 ## Error policy
 
@@ -111,3 +171,4 @@ Read endpoints: `/overview`, `/chargers`, `/connectors`, `/energy`, `/sessions`,
 - Stable IDs are strings and remain opaque to clients.
 - Timestamps should converge on ISO 8601 UTC; current MySQL datetime strings are observed legacy behavior.
 - Operational responses must add consistent source metadata (`data_source`, `data_mode`, `last_updated`) before being described as live.
+

@@ -34,12 +34,20 @@ WordPress roles select a portal and coarse capabilities; membership `role_key` a
 - Only users with `manage_options` may enter `/wp-admin`; other authenticated users are redirected to their branded portal.
 
 ## Operations API enforcement
-
-- Operations read routes (`/wp-json/ezev-ops/v1/*`) require both authentication and an operational capability (`ezev_view_operations`, `ezev_view_internal`, or `manage_options`). Callers lacking this capability (e.g. `ezev_customer`) are rejected with HTTP 403 `rest_forbidden`.
-- Tenant callers with operational capabilities are restricted to their assigned stable station keys (`allowed_station_post_ids` -> `station_id` mapping). Only stations within scope are returned.
+ 
+- Operations read routes (`/wp-json/ezev-ops/v1/*`) enforce granular data authorization based on role tier and station scope:
+  - **Administrator** (`manage_options`): Full access across all stations and all data domains (`scope: 'all'`).
+  - **Internal Ops / Technical** (`ezev_internal_ops`, `ezev_internal_technical`): Telemetry, chargers, connectors, sessions, alerts, and maintenance tickets within assigned station scope. Network-wide access requires explicit `ezev_view_all_stations` capability.
+  - **Business / Site Manager** (`ezev_business`, `site_manager`): Station status, chargers, connectors, sessions, and energy within assigned site/station scope. May create and view maintenance tickets.
+  - **Partner** (`ezev_partner`): Commercial and operational status (chargers, connectors, sessions, energy) for contracted stations only. No internal maintenance ticket details.
+  - **Investor** (`ezev_investor`): High-level aggregate metrics, utilization, and financial/performance reports only (`/overview`, `/reports/performance`). Blocked from raw session telemetry and maintenance ticket inspection.
+  - **Customer** (`ezev_customer`): Strictly forbidden from all operational endpoints (HTTP 403 `rest_forbidden`).
+- Station scoping relies on `EZEV_Core_Auth::allowed_station_keys(user_id)`. Non-admin users only receive data for stations they are explicitly assigned to.
+- `ezev_view_internal` is a portal-routing capability only and **does not bypass** resource scope or grant blanket operational access.
 - Operations mutations (manual data saves, provider activation, sync triggers) require `manage_options` or `ezev_manage_operations`.
-- Webhooks require integration secret verification and strict timestamp window verification (±300 seconds) against replay attacks.
+- Webhooks require integration secret verification, timestamp window verification (±300 seconds), and atomic deduplication (`X-EZEV-Event-ID` or payload hash) backed by `webhook_receipts`. Duplicate deliveries are rejected with HTTP 409, and database failures fail-closed with HTTP 503.
 
 ## Required behavior
-
+ 
 Forbidden access returns HTTP 403 with a stable error code. Collection requests return only authorized resources; direct resource requests must independently verify scope and must not trust a prior list response or frontend state. Audit denied privileged actions without recording credentials or complete provider payloads.
+

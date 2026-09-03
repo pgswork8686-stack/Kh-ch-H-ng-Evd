@@ -74,11 +74,66 @@ check_file_contains_regex(
     "Core Auth documents that ezev_view_internal is portal-only (not station scope bypass)"
 );
 
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/ezev-operations.php',
+    "/define\(\s*['\"]EZEVO_VERSION['\"]\s*,\s*['\"]4\.1\.0['\"]\s*\)/",
+    "EZEVO_VERSION constant is defined as 4.1.0"
+);
+
+// Verify Core CRUD and Invitations
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    "/'\/organizations'/",
+    "Core REST registers /organizations route"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    "/'\/sites'/",
+    "Core REST registers /sites route"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-core/includes/class-ezev-core-rest.php',
+    "/invitations/",
+    "Core REST registers invitations routes"
+);
+
+// Verify Operations Detail, Maintenance, and Reports
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    "/'\/maintenance'/",
+    "Operations REST registers /maintenance route"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    "/'\/reports\/summary'/",
+    "Operations REST registers /reports/summary route"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    "/'\/reports\/performance'/",
+    "Operations REST registers /reports/performance route"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-rest.php',
+    "/can_view_telemetry/",
+    "Operations REST implements granular can_view_telemetry capability"
+);
+
+check_file_contains_regex(
+    'wp-content/plugins/ezev-operations/includes/class-ezevo-sync.php',
+    "/ezevo_cleanup_receipts_event/",
+    "Operations Sync registers scheduled receipt cleanup event"
+);
+
 // Verify that ezev_view_internal is NOT used as bypass in allowed_station_post_ids
 $authFile = 'wp-content/plugins/ezev-core/includes/class-ezev-core-auth.php';
 if (file_exists($authFile)) {
     $authContent = file_get_contents($authFile);
-    // The bypass condition must NOT contain ezev_view_internal
     if (preg_match('/user_can.*manage_options.*ezev_view_internal/s', $authContent) &&
         !preg_match('/user_can.*manage_options.*ezev_view_all_stations/s', $authContent)) {
         $errors[] = "SECURITY: ezev_view_internal is still used as all-station bypass in class-ezev-core-auth.php";
