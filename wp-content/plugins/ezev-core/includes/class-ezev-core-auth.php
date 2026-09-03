@@ -16,9 +16,9 @@ final class EZEV_Core_Auth {
         $roles = (array) $user->roles;
         if (user_can($user, 'manage_options')) { return admin_url(); }
         if (array_intersect($roles, ['ezev_customer'])) { return home_url('/account/'); }
-        if (array_intersect($roles, ['ezev_business'])) { return home_url('/business/'); }
-        if (array_intersect($roles, ['ezev_partner','ezev_investor'])) { return home_url('/partner/'); }
-        if (array_filter($roles, static fn($r) => str_starts_with($r, 'ezev_internal_'))) { return home_url('/internal/'); }
+        if (array_intersect($roles, ['ezev_business'])) { return home_url('/portal/business/'); }
+        if (array_intersect($roles, ['ezev_partner','ezev_investor'])) { return home_url('/portal/partner/'); }
+        if (array_filter($roles, static fn($r) => str_starts_with($r, 'ezev_internal_'))) { return home_url('/admin/'); }
         return home_url('/account/');
     }
 

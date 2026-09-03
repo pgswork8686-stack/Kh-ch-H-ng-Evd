@@ -32,7 +32,7 @@ High-frequency telemetry and OCPP/WebSocket workloads are explicitly outside lon
 
 ## Authentication
 
-The current browser phase uses WordPress users and secure WordPress auth cookies. Branded frontend routes are `/login`, `/account`, `/business`, `/partner`, and `/internal`; administrators retain `/wp-admin`.
+The current browser phase uses WordPress users and secure WordPress auth cookies. Branded frontend routes are `/login`, `/account`, `/portal/business`, `/portal/partner`, and `/admin`; administrators retain `/wp-admin` for technical WordPress backend administration.
 
 Future API clients require a standards-based access/refresh token design with expiry, device sessions, rotation, and revocation. No custom token implementation should be introduced without a threat model and documented protocol.
 
