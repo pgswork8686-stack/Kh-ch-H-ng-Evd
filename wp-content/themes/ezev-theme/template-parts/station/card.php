@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Station Card Component
  * Expected $args: StationDTO array

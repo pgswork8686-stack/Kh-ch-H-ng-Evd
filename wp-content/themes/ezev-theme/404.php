@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * 404 Not Found Template
  * Unpublish Station lifecycle handler

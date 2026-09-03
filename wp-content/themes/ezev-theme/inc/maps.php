@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Google Maps Configuration & Integration Loader
  * Reads API key strictly from EZEV Core settings.

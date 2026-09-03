@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Generic Archive / Fallback Template
  */

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Footer Content Template Part
  * Compliance: docs/NAVIGATION-ARCHITECTURE.md

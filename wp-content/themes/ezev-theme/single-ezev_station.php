@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Single Station Detail Template
  * Route: /stations/[slug]

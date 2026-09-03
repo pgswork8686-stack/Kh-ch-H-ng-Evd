@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Template Name: Find a Charger
  * Route: /find-a-charger

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Station Status & Data Mode Badges
  * Args passed via $args: ['status' => 'active', 'mode' => 'manual', 'is_demo' => false]

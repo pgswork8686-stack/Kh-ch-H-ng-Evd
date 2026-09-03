@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Map Container Component
  * Args passed via $args: ['map_id' => 'ezevMap', 'class' => 'ezev-map-frame', 'show_status' => true]

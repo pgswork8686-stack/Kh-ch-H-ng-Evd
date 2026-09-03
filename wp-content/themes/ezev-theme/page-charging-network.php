@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Template Name: Charging Network
  * Route: /charging-network

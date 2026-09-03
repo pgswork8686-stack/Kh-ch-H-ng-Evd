@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Header Navigation Template Part
  * Compliance: docs/NAVIGATION-ARCHITECTURE.md
