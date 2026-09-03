@@ -9,21 +9,23 @@ final class EZEV_Core_Auth {
 
     public static function login_redirect(string $redirect_to, string $requested, $user): string {
         if (!($user instanceof WP_User) || is_wp_error($user)) { return $redirect_to; }
+        return self::destination_for_user($user);
+    }
+
+    public static function destination_for_user(WP_User $user): string {
         $roles = (array) $user->roles;
+        if (user_can($user, 'manage_options')) { return admin_url(); }
         if (array_intersect($roles, ['ezev_customer'])) { return home_url('/account/'); }
         if (array_intersect($roles, ['ezev_business'])) { return home_url('/business/'); }
         if (array_intersect($roles, ['ezev_partner','ezev_investor'])) { return home_url('/partner/'); }
         if (array_filter($roles, static fn($r) => str_starts_with($r, 'ezev_internal_'))) { return home_url('/internal/'); }
-        return $redirect_to;
+        return home_url('/account/');
     }
 
     public static function protect_wp_admin(): void {
         if (!is_admin() || wp_doing_ajax() || !is_user_logged_in()) { return; }
-        $user = wp_get_current_user();
-        $roles = (array) $user->roles;
-        $frontend_only = ['ezev_customer','ezev_business','ezev_partner','ezev_investor'];
-        if (array_intersect($roles, $frontend_only) && !current_user_can('edit_posts')) {
-            wp_safe_redirect(home_url('/account/'));
+        if (!current_user_can('manage_options')) {
+            wp_safe_redirect(self::destination_for_user(wp_get_current_user()));
             exit;
         }
     }
@@ -50,7 +52,7 @@ final class EZEV_Core_Auth {
         return $members;
     }
 
-    public static function allowed_station_ids(int $user_id): array {
+    public static function allowed_station_post_ids(int $user_id): array {
         if (user_can($user_id, 'manage_options') || user_can($user_id, 'ezev_view_internal')) {
             return array_map(static fn($s) => (int) $s['post_id'], EZEV_Core_Stations::list());
         }
@@ -81,5 +83,34 @@ final class EZEV_Core_Auth {
             }
         }
         return array_values(array_unique(array_map('intval', $allowed)));
+    }
+
+    /** @deprecated Internal compatibility alias; public contracts must use allowed_station_keys(). */
+    public static function allowed_station_ids(int $user_id): array {
+        return self::allowed_station_post_ids($user_id);
+    }
+
+    public static function allowed_station_keys(int $user_id): array {
+        return array_values(array_filter(array_map(static function (int $post_id): string {
+            $station = EZEV_Core_Stations::to_array($post_id);
+            return (string) ($station['station_id'] ?? '');
+        }, self::allowed_station_post_ids($user_id))));
+    }
+
+    public static function can_access_station(int $user_id, string $station_id, string $action = 'read'): bool {
+        if ($user_id <= 0) { return false; }
+        if (user_can($user_id, 'manage_options')) { return true; }
+        $station_id = EZEV_Core_Domain::normalize_id($station_id);
+        if (!in_array($station_id, self::allowed_station_keys($user_id), true)) { return false; }
+        if ($action === 'read') { return true; }
+        foreach (self::user_access($user_id) as $membership) {
+            if (!in_array($membership['role_key'], ['owner', 'admin', 'operations', 'site_manager'], true)) { continue; }
+            if (in_array($station_id, $membership['station_ids'], true)) { return true; }
+            $post_id = EZEV_Core_Stations::find_by_station_id($station_id);
+            $station = $post_id ? EZEV_Core_Stations::to_array($post_id) : [];
+            if (!empty($station['site_id']) && in_array($station['site_id'], $membership['site_ids'], true)) { return true; }
+            if (in_array($membership['role_key'], ['owner', 'admin'], true) && ($station['organization_id'] ?? '') === $membership['organization_id']) { return true; }
+        }
+        return false;
     }
 }

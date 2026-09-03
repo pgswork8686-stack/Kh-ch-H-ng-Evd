@@ -54,6 +54,14 @@ Requires `ezev_manage_stations`. Updates the station addressed by stable ID. `st
 
 Requires login. Returns WordPress user identity, roles, memberships, and stable `allowed_station_ids`.
 
+### `GET /me/stations`
+
+Requires login. Returns only stations allowed by active membership, organization, site, and station scope.
+
+### `GET /me/stations/{station_id}`
+
+Requires login. Returns the scoped station, 404 when the stable ID does not exist, or 403 when it exists outside the caller's scope.
+
 ### `GET /saved-stations`
 
 Requires login. Returns `{ "stations": [...] }`.
@@ -68,7 +76,7 @@ Requires login. The path value is a stable station ID. Success returns `{ "saved
 
 ### `POST /auth/login`
 
-Public entry point with `username`, `password`, and optional `remember`. Establishes a WordPress auth cookie and returns `success`, `message`, `redirect_url`, and a user summary. This is a browser-phase endpoint, not a token API.
+Public entry point with `username`, `password`, and optional `remember`. Establishes a WordPress auth cookie and returns `success`, `message`, `redirect_url`, `rest_nonce`, and a user summary. The nonce is used for subsequent same-origin REST mutations. This is a browser-phase endpoint, not a token API.
 
 ### `POST /auth/logout`
 

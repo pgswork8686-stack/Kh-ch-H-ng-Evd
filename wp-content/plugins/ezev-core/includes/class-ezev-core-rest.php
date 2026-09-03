@@ -37,6 +37,16 @@ final class EZEV_Core_REST {
             'callback' => [self::class, 'me'],
             'permission_callback' => static fn() => is_user_logged_in(),
         ]);
+        register_rest_route('ezev/v1', '/me/stations', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [self::class, 'my_stations'],
+            'permission_callback' => [self::class, 'authenticated'],
+        ]);
+        register_rest_route('ezev/v1', '/me/stations/(?P<station_id>[A-Za-z0-9._-]+)', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [self::class, 'my_station'],
+            'permission_callback' => [self::class, 'authenticated'],
+        ]);
         register_rest_route('ezev/v1', '/saved-stations', [
             [
                 'methods' => WP_REST_Server::READABLE,
@@ -80,6 +90,10 @@ final class EZEV_Core_REST {
         if (!is_user_logged_in()) { return new WP_Error('ezev_authentication_required', 'Authentication required.', ['status' => 401]); }
         if (!current_user_can('ezev_manage_stations')) { return new WP_Error('ezev_forbidden', 'You are not allowed to manage stations.', ['status' => 403]); }
         return true;
+    }
+
+    public static function authenticated(): bool|WP_Error {
+        return is_user_logged_in() ? true : new WP_Error('ezev_authentication_required', 'Authentication required.', ['status' => 401]);
     }
 
     public static function station(WP_REST_Request $request): WP_REST_Response|WP_Error {
@@ -175,11 +189,27 @@ final class EZEV_Core_REST {
             'email' => $user->user_email,
             'roles' => array_values($user->roles),
             'memberships' => EZEV_Core_Auth::user_access($user->ID),
-            'allowed_station_ids' => array_values(array_filter(array_map(static function (int $post_id): string {
-                $station = EZEV_Core_Stations::to_array($post_id);
-                return (string) ($station['station_id'] ?? '');
-            }, EZEV_Core_Auth::allowed_station_ids($user->ID)))),
+            'allowed_station_ids' => EZEV_Core_Auth::allowed_station_keys($user->ID),
         ]);
+    }
+
+    public static function my_stations(): WP_REST_Response {
+        $stations = [];
+        foreach (EZEV_Core_Auth::allowed_station_keys(get_current_user_id()) as $station_id) {
+            $post_id = EZEV_Core_Stations::find_by_station_id($station_id);
+            if ($post_id && get_post_status($post_id) === 'publish') { $stations[] = EZEV_Core_Stations::to_domain_array($post_id); }
+        }
+        return rest_ensure_response(['count' => count($stations), 'stations' => $stations]);
+    }
+
+    public static function my_station(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        $station_id = EZEV_Core_Domain::normalize_id((string) $request['station_id']);
+        $post_id = EZEV_Core_Stations::find_by_station_id($station_id);
+        if (!$post_id) { return new WP_Error('ezev_station_not_found', 'Station not found.', ['status' => 404]); }
+        if (!EZEV_Core_Auth::can_access_station(get_current_user_id(), $station_id)) {
+            return new WP_Error('ezev_station_forbidden', 'You are not allowed to access this station.', ['status' => 403]);
+        }
+        return rest_ensure_response(['station' => EZEV_Core_Stations::to_domain_array($post_id)]);
     }
 
     public static function saved_stations(): WP_REST_Response {
@@ -238,17 +268,7 @@ final class EZEV_Core_REST {
         wp_set_auth_cookie($user->ID, $remember);
 
         $roles = (array) $user->roles;
-        $redirect_url = home_url('/account/');
-
-        if (in_array('administrator', $roles, true)) {
-            $redirect_url = admin_url();
-        } elseif (array_filter($roles, static fn($r) => str_starts_with($r, 'ezev_internal_'))) {
-            $redirect_url = home_url('/internal/');
-        } elseif (in_array('ezev_business', $roles, true)) {
-            $redirect_url = home_url('/business/');
-        } elseif (in_array('ezev_partner', $roles, true) || in_array('ezev_investor', $roles, true)) {
-            $redirect_url = home_url('/partner/');
-        }
+        $redirect_url = EZEV_Core_Auth::destination_for_user($user);
 
         EZEV_Core_DB::log('frontend_login_success', 'user', (string) $user->ID, ['redirect' => $redirect_url]);
 
@@ -256,6 +276,7 @@ final class EZEV_Core_REST {
             'success' => true,
             'message' => 'Đăng nhập thành công.',
             'redirect_url' => $redirect_url,
+            'rest_nonce' => wp_create_nonce('wp_rest'),
             'user' => [
                 'id' => $user->ID,
                 'name' => $user->display_name,

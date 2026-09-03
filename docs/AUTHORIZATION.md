@@ -11,7 +11,7 @@ authenticated identity
   AND site/station/resource scope
 ```
 
-Administrators may bypass resource scope through `manage_options`. Internal bypass currently uses `ezev_view_internal`; this is broad and should be narrowed for operations actions.
+Administrators may bypass Core resource scope through `manage_options`. Internal operational access is handled separately by the Operations policy and must not imply Core mutation rights.
 
 ## Membership roles
 
@@ -24,12 +24,18 @@ Administrators may bypass resource scope through `manage_options`. Internal bypa
 
 WordPress roles select a portal and coarse capabilities; membership `role_key` and access rows define tenant/resource scope. Neither layer alone is sufficient.
 
-## Current gaps
+## Core API enforcement
 
-- Core's public station list intentionally exposes published station master data, but no authenticated scoped Core collection exists for business/partner portals.
-- Operations read routes check only login at the permission callback. Row filtering prevents broad asset disclosure for ordinary users, but capability intent is not enforced and empty results conceal policy mistakes.
-- No mutation APIs exist for station or operational resources; admin form handlers require a separate capability/nonce audit before being treated as an API authorization model.
-- Saved-station actions use numeric post IDs and validate existence, not a stable domain resource key.
+- Public station discovery uses `/stations` and `/stations/{station_id}` and contains only published public master data.
+- Authenticated portals use `/me/stations` for a filtered collection and `/me/stations/{station_id}` for direct scoped access.
+- A direct request for an existing station outside the caller's scope returns `ezev_station_forbidden` with HTTP 403.
+- Station create/update requires `ezev_manage_stations`; authentication without that capability returns 403.
+- Saved-station actions operate on stable station IDs and are user-owned records.
+- Only users with `manage_options` may enter `/wp-admin`; other authenticated users are redirected to their branded portal.
+
+## Remaining Operations gap
+
+Operations read routes still need a dedicated capability/action matrix in the Operations milestone. Core resource scoping alone must not be treated as authorization to view every operational field.
 
 ## Required behavior
 
