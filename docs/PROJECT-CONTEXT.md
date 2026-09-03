@@ -40,3 +40,13 @@ The remote exposed no `main` head during the audit. The local checkout reported 
 ## Release decision
 
 This baseline is suitable for documentation and controlled hardening, not production deployment. Priority order: stabilize IDs and API contracts; enforce capability/scope policy; harden webhooks/providers; make sync idempotent; add migrations and tests; then integrate with the frontend branch.
+
+## Core implementation progress
+
+- Core 4.1.0 / schema 1.1.0 introduces stable organization, site, membership, and station relationships with upgrade backfill.
+- Station list/detail/create/update and saved-station contracts now use stable station IDs and normalized domain responses.
+- Authenticated portal station routes enforce membership/resource scope and direct forbidden access returns HTTP 403.
+- Google Maps uses live Maps JavaScript, Places, Geocoding, Advanced Marker drag, and browser geolocation with no static map fallback.
+- The demo fixture contains exactly 20 VN, 20 PH, and 20 CN records; all 60 are explicitly demo/manual records and the importer forces `is_demo=true`.
+
+Core cannot be declared production-PASS until clean-install/upgrade, REST, RBAC, persistence, and live Maps tests run against an actual WordPress/MySQL environment.
