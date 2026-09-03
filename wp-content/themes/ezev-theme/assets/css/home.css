@@ -1,0 +1,319 @@
+﻿/**
+ * Home Page Styles
+ * Compliance: Checkpoint 4.1D & UI Reference "Trang Chủ.png"
+ */
+
+/* Hero Section */
+.ezev-hero-section {
+  position: relative;
+  background-color: var(--ezev-color-dark-900);
+  color: #FFFFFF;
+  padding-top: var(--ezev-space-16);
+  padding-bottom: var(--ezev-space-20);
+  overflow: hidden;
+}
+
+.ezev-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-10);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .ezev-hero-grid {
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+.ezev-hero-title {
+  color: #FFFFFF;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: var(--ezev-space-4);
+  letter-spacing: -0.03em;
+}
+
+.ezev-highlight {
+  color: var(--ezev-color-primary);
+}
+
+.ezev-hero-subtitle {
+  color: #CBD5E1;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  margin-bottom: var(--ezev-space-8);
+  max-width: 520px;
+}
+
+.ezev-hero-ctas {
+  display: flex;
+  gap: var(--ezev-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--ezev-space-12);
+}
+
+.ezev-hero-media {
+  position: relative;
+  border-radius: var(--ezev-radius-2xl);
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ezev-hero-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Stats Bar */
+.ezev-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ezev-space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: var(--ezev-space-8);
+}
+
+@media (min-width: 768px) {
+  .ezev-stats-bar {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ezev-stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ezev-space-3);
+}
+
+.ezev-stat-icon {
+  font-size: 1.75rem;
+  color: var(--ezev-color-primary);
+}
+
+.ezev-stat-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.1;
+}
+
+.ezev-stat-lbl {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+/* Home Find Charger & Mini Map Section */
+.ezev-home-find-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #FFFFFF;
+}
+
+.ezev-home-find-box {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-2xl);
+  box-shadow: var(--ezev-shadow-lg);
+  overflow: hidden;
+}
+
+.ezev-home-find-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .ezev-home-find-grid {
+    grid-template-columns: 360px 1fr 340px;
+  }
+}
+
+.ezev-home-find-form {
+  padding: var(--ezev-space-6);
+  border-right: 1px solid var(--ezev-color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ezev-space-4);
+}
+
+.ezev-home-mini-map-container {
+  height: 380px;
+  position: relative;
+  background: #E2E8F0;
+}
+
+@media (min-width: 1024px) {
+  .ezev-home-mini-map-container {
+    height: 100%;
+    min-height: 380px;
+  }
+}
+
+.ezev-home-preview-card {
+  padding: var(--ezev-space-6);
+  border-left: 1px solid var(--ezev-color-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #FAFAFA;
+}
+
+/* Value Props / Why Choose */
+.ezev-props-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #F8FAFC;
+  text-align: center;
+}
+
+.ezev-section-eyebrow {
+  color: var(--ezev-color-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--ezev-space-2);
+}
+
+.ezev-props-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-6);
+  margin-top: var(--ezev-space-12);
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .ezev-props-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ezev-props-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ezev-prop-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-6);
+  box-shadow: var(--ezev-shadow-xs);
+  transition: transform var(--ezev-transition-fast);
+}
+
+.ezev-prop-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--ezev-color-primary);
+}
+
+.ezev-prop-icon {
+  font-size: 2rem;
+  margin-bottom: var(--ezev-space-3);
+}
+
+/* Zappy Mascot Banner */
+.ezev-zappy-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #FFFFFF;
+}
+
+.ezev-zappy-card {
+  background: linear-gradient(135deg, #EAF6DC 0%, #F4FBEF 100%);
+  border: 1px solid rgba(115, 183, 42, 0.3);
+  border-radius: var(--ezev-radius-2xl);
+  padding: var(--ezev-space-10);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-8);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .ezev-zappy-card {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.ezev-zappy-img {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Solutions 3-Col */
+.ezev-solutions-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #F8FAFC;
+}
+
+.ezev-solutions-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ezev-space-6);
+  margin-top: var(--ezev-space-10);
+}
+
+@media (min-width: 768px) {
+  .ezev-solutions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ezev-solution-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ezev-color-border);
+  border-radius: var(--ezev-radius-xl);
+  padding: var(--ezev-space-6);
+  display: flex;
+  flex-direction: column;
+}
+
+.ezev-solution-card:hover {
+  border-color: var(--ezev-color-primary);
+}
+
+/* FAQs Accordion */
+.ezev-faqs-section {
+  padding: var(--ezev-space-16) 0;
+  background-color: #FFFFFF;
+}
+
+.ezev-faq-item {
+  border-bottom: 1px solid var(--ezev-color-border);
+  padding: var(--ezev-space-4) 0;
+}
+
+.ezev-faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ezev-color-dark-900);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ezev-faq-answer {
+  display: none;
+  padding-top: var(--ezev-space-3);
+  font-size: 0.9375rem;
+  color: var(--ezev-color-text-muted);
+}
+
+.ezev-faq-item.active .ezev-faq-answer {
+  display: block;
+}
