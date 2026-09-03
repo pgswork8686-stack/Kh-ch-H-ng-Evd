@@ -1,0 +1,1567 @@
+{
+  "dataset": "EZEV demo station seed",
+  "warning": "DEMO DATA ONLY. These records are not claimed to be real EZEV charging stations. Coordinates are representative locations for development/testing.",
+  "version": "1.0.0",
+  "count": 60,
+  "countries": {
+    "VN": 20,
+    "PH": 20,
+    "CN": 20
+  },
+  "stations": [
+    {
+      "station_id": "EZEV-VN-DEMO-001",
+      "name": "EZEV Demo - Hoan Kiem",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "region": "Hoan Kiem",
+      "address_label": "Hoan Kiem, Hanoi",
+      "latitude": 21.0285,
+      "longitude": 105.8542,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-002",
+      "name": "EZEV Demo - Tay Ho",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "region": "Tay Ho",
+      "address_label": "Tay Ho, Hanoi",
+      "latitude": 21.0687,
+      "longitude": 105.823,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "wifi"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-003",
+      "name": "EZEV Demo - Cau Giay",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "region": "Cau Giay",
+      "address_label": "Cau Giay, Hanoi",
+      "latitude": 21.0362,
+      "longitude": 105.7906,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-004",
+      "name": "EZEV Demo - My Dinh",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hanoi",
+      "region": "Nam Tu Liem",
+      "address_label": "Nam Tu Liem, Hanoi",
+      "latitude": 21.0288,
+      "longitude": 105.779,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-005",
+      "name": "EZEV Demo - District 1",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "region": "District 1",
+      "address_label": "District 1, Ho Chi Minh City",
+      "latitude": 10.7769,
+      "longitude": 106.7009,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "mall"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-006",
+      "name": "EZEV Demo - Thu Duc",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "region": "Thu Duc City",
+      "address_label": "Thu Duc City, Ho Chi Minh City",
+      "latitude": 10.8494,
+      "longitude": 106.7719,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-007",
+      "name": "EZEV Demo - Tan Binh",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "region": "Tan Binh",
+      "address_label": "Tan Binh, Ho Chi Minh City",
+      "latitude": 10.8014,
+      "longitude": 106.6526,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "airport"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-008",
+      "name": "EZEV Demo - District 7",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh City",
+      "region": "District 7",
+      "address_label": "District 7, Ho Chi Minh City",
+      "latitude": 10.7297,
+      "longitude": 106.721,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-009",
+      "name": "EZEV Demo - Hai Chau",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Da Nang",
+      "region": "Hai Chau",
+      "address_label": "Hai Chau, Da Nang",
+      "latitude": 16.0471,
+      "longitude": 108.2068,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-010",
+      "name": "EZEV Demo - Ngo Quyen",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hai Phong",
+      "region": "Ngo Quyen",
+      "address_label": "Ngo Quyen, Hai Phong",
+      "latitude": 20.8449,
+      "longitude": 106.6881,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-011",
+      "name": "EZEV Demo - Ninh Kieu",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Can Tho",
+      "region": "Ninh Kieu",
+      "address_label": "Ninh Kieu, Can Tho",
+      "latitude": 10.0452,
+      "longitude": 105.7469,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 120,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-012",
+      "name": "EZEV Demo - Nha Trang Center",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Nha Trang",
+      "region": "Khanh Hoa",
+      "address_label": "Khanh Hoa, Nha Trang",
+      "latitude": 12.2388,
+      "longitude": 109.1967,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-013",
+      "name": "EZEV Demo - Hue Center",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Hue",
+      "region": "Thua Thien Hue",
+      "address_label": "Thua Thien Hue, Hue",
+      "latitude": 16.4637,
+      "longitude": 107.5909,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 120,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-014",
+      "name": "EZEV Demo - Vung Tau Center",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Vung Tau",
+      "region": "Ba Ria - Vung Tau",
+      "address_label": "Ba Ria - Vung Tau, Vung Tau",
+      "latitude": 10.4114,
+      "longitude": 107.1362,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-015",
+      "name": "EZEV Demo - Thu Dau Mot",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Thu Dau Mot",
+      "region": "Binh Duong",
+      "address_label": "Binh Duong, Thu Dau Mot",
+      "latitude": 10.9804,
+      "longitude": 106.6519,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-016",
+      "name": "EZEV Demo - Bien Hoa",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Bien Hoa",
+      "region": "Dong Nai",
+      "address_label": "Dong Nai, Bien Hoa",
+      "latitude": 10.9574,
+      "longitude": 106.8426,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-017",
+      "name": "EZEV Demo - Ha Long",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Ha Long",
+      "region": "Quang Ninh",
+      "address_label": "Quang Ninh, Ha Long",
+      "latitude": 20.9712,
+      "longitude": 107.0448,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-018",
+      "name": "EZEV Demo - Bac Ninh",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Bac Ninh",
+      "region": "Bac Ninh",
+      "address_label": "Bac Ninh, Bac Ninh",
+      "latitude": 21.1861,
+      "longitude": 106.0763,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-019",
+      "name": "EZEV Demo - Thanh Hoa",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Thanh Hoa",
+      "region": "Thanh Hoa",
+      "address_label": "Thanh Hoa, Thanh Hoa",
+      "latitude": 19.807,
+      "longitude": 105.7764,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 120,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-VN-DEMO-020",
+      "name": "EZEV Demo - Vinh",
+      "country_code": "VN",
+      "country": "Vietnam",
+      "city": "Vinh",
+      "region": "Nghe An",
+      "address_label": "Nghe An, Vinh",
+      "latitude": 18.6796,
+      "longitude": 105.6813,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-001",
+      "name": "EZEV Demo - BGC",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Taguig",
+      "region": "Bonifacio Global City",
+      "address_label": "Bonifacio Global City, Taguig",
+      "latitude": 14.5508,
+      "longitude": 121.0506,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 480,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom",
+        "food"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-002",
+      "name": "EZEV Demo - Makati CBD",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Makati",
+      "region": "Makati CBD",
+      "address_label": "Makati CBD, Makati",
+      "latitude": 14.5547,
+      "longitude": 121.0244,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-003",
+      "name": "EZEV Demo - Ortigas",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Pasig",
+      "region": "Ortigas Center",
+      "address_label": "Ortigas Center, Pasig",
+      "latitude": 14.5869,
+      "longitude": 121.0614,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-004",
+      "name": "EZEV Demo - Quezon City Center",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Quezon City",
+      "region": "Quezon City",
+      "address_label": "Quezon City, Quezon City",
+      "latitude": 14.676,
+      "longitude": 121.0437,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-005",
+      "name": "EZEV Demo - Manila Bay",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Manila",
+      "region": "Manila Bay",
+      "address_label": "Manila Bay, Manila",
+      "latitude": 14.5764,
+      "longitude": 120.9822,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-006",
+      "name": "EZEV Demo - Pasay MOA Area",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Pasay",
+      "region": "Mall of Asia Area",
+      "address_label": "Mall of Asia Area, Pasay",
+      "latitude": 14.5352,
+      "longitude": 120.9822,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-007",
+      "name": "EZEV Demo - Mandaluyong",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Mandaluyong",
+      "region": "Mandaluyong",
+      "address_label": "Mandaluyong, Mandaluyong",
+      "latitude": 14.5794,
+      "longitude": 121.0359,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-008",
+      "name": "EZEV Demo - Alabang",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Muntinlupa",
+      "region": "Alabang",
+      "address_label": "Alabang, Muntinlupa",
+      "latitude": 14.4237,
+      "longitude": 121.045,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-009",
+      "name": "EZEV Demo - Antipolo",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Antipolo",
+      "region": "Rizal",
+      "address_label": "Rizal, Antipolo",
+      "latitude": 14.6255,
+      "longitude": 121.1245,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-010",
+      "name": "EZEV Demo - Santa Rosa",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Santa Rosa",
+      "region": "Laguna",
+      "address_label": "Laguna, Santa Rosa",
+      "latitude": 14.3122,
+      "longitude": 121.1114,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-011",
+      "name": "EZEV Demo - Cebu IT Park",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Cebu City",
+      "region": "Cebu IT Park",
+      "address_label": "Cebu IT Park, Cebu City",
+      "latitude": 10.3307,
+      "longitude": 123.9057,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-012",
+      "name": "EZEV Demo - Mactan",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Lapu-Lapu City",
+      "region": "Mactan",
+      "address_label": "Mactan, Lapu-Lapu City",
+      "latitude": 10.3157,
+      "longitude": 123.9494,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "airport",
+        "food"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-013",
+      "name": "EZEV Demo - Davao Center",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Davao City",
+      "region": "Davao del Sur",
+      "address_label": "Davao del Sur, Davao City",
+      "latitude": 7.0731,
+      "longitude": 125.6128,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-014",
+      "name": "EZEV Demo - Iloilo Center",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Iloilo City",
+      "region": "Iloilo",
+      "address_label": "Iloilo, Iloilo City",
+      "latitude": 10.7202,
+      "longitude": 122.5621,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-015",
+      "name": "EZEV Demo - Bacolod",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Bacolod",
+      "region": "Negros Occidental",
+      "address_label": "Negros Occidental, Bacolod",
+      "latitude": 10.6765,
+      "longitude": 122.9509,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-016",
+      "name": "EZEV Demo - Cagayan de Oro",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Cagayan de Oro",
+      "region": "Misamis Oriental",
+      "address_label": "Misamis Oriental, Cagayan de Oro",
+      "latitude": 8.4542,
+      "longitude": 124.6319,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-017",
+      "name": "EZEV Demo - Clark",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Angeles City",
+      "region": "Clark Freeport",
+      "address_label": "Clark Freeport, Angeles City",
+      "latitude": 15.177,
+      "longitude": 120.56,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "airport",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-018",
+      "name": "EZEV Demo - Baguio",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Baguio",
+      "region": "Benguet",
+      "address_label": "Benguet, Baguio",
+      "latitude": 16.4023,
+      "longitude": 120.596,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 120,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-019",
+      "name": "EZEV Demo - Batangas City",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Batangas City",
+      "region": "Batangas",
+      "address_label": "Batangas, Batangas City",
+      "latitude": 13.7565,
+      "longitude": 121.0583,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 180,
+      "ports_total": 4,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-PH-DEMO-020",
+      "name": "EZEV Demo - Naga",
+      "country_code": "PH",
+      "country": "Philippines",
+      "city": "Naga City",
+      "region": "Camarines Sur",
+      "address_label": "Camarines Sur, Naga City",
+      "latitude": 13.6218,
+      "longitude": 123.1948,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 120,
+      "ports_total": 4,
+      "ports_available_manual": 2,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-001",
+      "name": "EZEV Demo - Chaoyang",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Beijing",
+      "region": "Chaoyang",
+      "address_label": "Chaoyang, Beijing",
+      "latitude": 39.9042,
+      "longitude": 116.4074,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 6,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-002",
+      "name": "EZEV Demo - Pudong",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Shanghai",
+      "region": "Pudong",
+      "address_label": "Pudong, Shanghai",
+      "latitude": 31.2304,
+      "longitude": 121.4737,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 480,
+      "ports_total": 8,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-003",
+      "name": "EZEV Demo - Nanshan",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Shenzhen",
+      "region": "Nanshan",
+      "address_label": "Nanshan, Shenzhen",
+      "latitude": 22.5431,
+      "longitude": 114.0579,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 480,
+      "ports_total": 8,
+      "ports_available_manual": 6,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-004",
+      "name": "EZEV Demo - Tianhe",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Guangzhou",
+      "region": "Tianhe",
+      "address_label": "Tianhe, Guangzhou",
+      "latitude": 23.1291,
+      "longitude": 113.2644,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "food"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-005",
+      "name": "EZEV Demo - Chengdu Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Chengdu",
+      "region": "Sichuan",
+      "address_label": "Sichuan, Chengdu",
+      "latitude": 30.5728,
+      "longitude": 104.0668,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-006",
+      "name": "EZEV Demo - Hangzhou Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Hangzhou",
+      "region": "Zhejiang",
+      "address_label": "Zhejiang, Hangzhou",
+      "latitude": 30.2741,
+      "longitude": 120.1551,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 6,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-007",
+      "name": "EZEV Demo - Nanjing Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Nanjing",
+      "region": "Jiangsu",
+      "address_label": "Jiangsu, Nanjing",
+      "latitude": 32.0603,
+      "longitude": 118.7969,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-008",
+      "name": "EZEV Demo - Wuhan Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Wuhan",
+      "region": "Hubei",
+      "address_label": "Hubei, Wuhan",
+      "latitude": 30.5928,
+      "longitude": 114.3055,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-009",
+      "name": "EZEV Demo - Xi'an Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Xi'an",
+      "region": "Shaanxi",
+      "address_label": "Shaanxi, Xi'an",
+      "latitude": 34.3416,
+      "longitude": 108.9398,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-010",
+      "name": "EZEV Demo - Chongqing Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Chongqing",
+      "region": "Chongqing",
+      "address_label": "Chongqing, Chongqing",
+      "latitude": 29.563,
+      "longitude": 106.5516,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-011",
+      "name": "EZEV Demo - Suzhou Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Suzhou",
+      "region": "Jiangsu",
+      "address_label": "Jiangsu, Suzhou",
+      "latitude": 31.2989,
+      "longitude": 120.5853,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-012",
+      "name": "EZEV Demo - Tianjin Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Tianjin",
+      "region": "Tianjin",
+      "address_label": "Tianjin, Tianjin",
+      "latitude": 39.3434,
+      "longitude": 117.3616,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-013",
+      "name": "EZEV Demo - Qingdao Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Qingdao",
+      "region": "Shandong",
+      "address_label": "Shandong, Qingdao",
+      "latitude": 36.0671,
+      "longitude": 120.3826,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-014",
+      "name": "EZEV Demo - Xiamen Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Xiamen",
+      "region": "Fujian",
+      "address_label": "Fujian, Xiamen",
+      "latitude": 24.4798,
+      "longitude": 118.0894,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-015",
+      "name": "EZEV Demo - Changsha Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Changsha",
+      "region": "Hunan",
+      "address_label": "Hunan, Changsha",
+      "latitude": 28.2282,
+      "longitude": 112.9388,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-016",
+      "name": "EZEV Demo - Zhengzhou Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Zhengzhou",
+      "region": "Henan",
+      "address_label": "Henan, Zhengzhou",
+      "latitude": 34.7466,
+      "longitude": 113.6254,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-017",
+      "name": "EZEV Demo - Ningbo Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Ningbo",
+      "region": "Zhejiang",
+      "address_label": "Zhejiang, Ningbo",
+      "latitude": 29.8683,
+      "longitude": 121.544,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 4,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-018",
+      "name": "EZEV Demo - Foshan Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Foshan",
+      "region": "Guangdong",
+      "address_label": "Guangdong, Foshan",
+      "latitude": 23.0215,
+      "longitude": 113.1214,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 5,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "mall",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-019",
+      "name": "EZEV Demo - Dongguan Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Dongguan",
+      "region": "Guangdong",
+      "address_label": "Guangdong, Dongguan",
+      "latitude": 23.0207,
+      "longitude": 113.7518,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 360,
+      "ports_total": 8,
+      "ports_available_manual": 6,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "food",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    },
+    {
+      "station_id": "EZEV-CN-DEMO-020",
+      "name": "EZEV Demo - Kunming Center",
+      "country_code": "CN",
+      "country": "China",
+      "city": "Kunming",
+      "region": "Yunnan",
+      "address_label": "Yunnan, Kunming",
+      "latitude": 25.0389,
+      "longitude": 102.7183,
+      "connector_types": [
+        "CCS2"
+      ],
+      "max_power_kw": 240,
+      "ports_total": 6,
+      "ports_available_manual": 3,
+      "opening_hours": "24/7",
+      "operational_status_manual": "active",
+      "amenities": [
+        "parking",
+        "cafe",
+        "restroom"
+      ],
+      "data_mode": "demo_manual",
+      "is_demo": true
+    }
+  ]
+}
