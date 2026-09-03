@@ -19,7 +19,7 @@ These rules apply to the whole repository.
 
 ## Workflow
 
-- Backend work uses `codex/core-system`; integration uses `integration/ezev-v1`; `main` only receives tested integration milestones.
+- Single-agent workflow: `main` is stable release, all active development uses `develop/ezev-v1`.
 - Use focused commits such as `feat(core):`, `feat(operations):`, `fix(core):`, `docs:`, and `test:`.
 - Update architecture, schema, authorization, integration, and API documents with the corresponding change.
 - A feature is complete only when persistence, API behavior, authorization, reload behavior, error handling, security checks, tests, and documentation are addressed.

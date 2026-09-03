@@ -3,21 +3,17 @@
 ## Branches
 
 - `main`: stable, tested releases only.
-- `integration/ezev-v1`: combined backend/frontend milestones.
-- `codex/core-system`: Core and Operations development.
-- `antigravity/frontend`: frontend-owned theme work.
-
-The repository was empty when this backend baseline was created. Confirm remote branch protection and the frontend branch before the first integration merge.
+- `develop/ezev-v1`: all active development and feature implementations.
 
 ## Change sequence
 
-1. Rebase or merge the latest relevant integration state without rewriting other owners' work.
+1. Ensure working directory is clean on `develop/ezev-v1`.
 2. Document contract or architecture changes before implementation.
 3. Implement in the owning plugin; keep theme changes narrowly integration-focused.
-4. Run syntax/static checks, clean-install and upgrade migrations, API contract tests, authorization tests, and relevant UI/integration checks.
+4. Run syntax/static checks, clean-install and upgrade migrations, API contract tests, authorization tests, and relevant UI/integration checks on runtime WordPress + MySQL.
 5. Verify persistence after reload and negative/error paths.
 6. Commit a focused logical change and describe contract/migration impact.
-7. Push `codex/core-system`; merge only stable milestones into `integration/ezev-v1`.
+7. Push `develop/ezev-v1`; merge into `main` only for tested releases.
 
 ## Minimum test matrix
 
