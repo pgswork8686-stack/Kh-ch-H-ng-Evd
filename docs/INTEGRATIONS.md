@@ -2,7 +2,9 @@
 
 ## Google Maps
 
-EZEV Core owns Maps configuration and loads Google Maps JavaScript/Places services for station administration and public discovery. Configuration includes encrypted API key, Map ID, default country, center, and zoom. Keys must be restricted in Google Cloud by API and allowed origin; server-side diagnostic calls require an appropriate server-key restriction model.
+EZEV Core owns Maps configuration and loads Google Maps JavaScript, Places, and Geocoding services for station administration and public discovery. Configuration includes encrypted API key, Map ID, default country bias, center, and zoom. The browser connection test succeeds only after both the Maps JavaScript library and a reverse-geocoding request respond successfully. Keys must be restricted in Google Cloud by API and allowed HTTP referrer.
+
+The Add Station editor provides address autocomplete, forward geocoding, an Advanced Marker with drag enabled, and synchronized latitude/longitude fields. Publishing writes the station record and metadata through Core; the public REST collection reads from the same record source. Public discovery supports Places search and browser geolocation and renders a setup/error state if Google cannot load.
 
 The archived v1 theme's `map-demo.jpg` and hard-coded pins are visual placeholders and are not an acceptable integration. Frontend work must consume Core's real station payload and Maps configuration.
 
