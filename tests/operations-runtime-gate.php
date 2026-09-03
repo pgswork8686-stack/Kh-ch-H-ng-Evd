@@ -62,7 +62,23 @@ update_option('ezevo_db_version', '1.0.1');
 EZEV_Operations_DB::maybe_upgrade();
 assertCheck("Monotonic upgrade restores legacy 1.0.1 to 1.1.0", get_option('ezevo_db_version') === '1.1.0');
 
+// Verify legacy 4.0.1 migration specifically preserves chargers and generates connectors
 global $wpdb;
+$testLegacyCharger = 'EZEV-LEGACY-401-CH1';
+$wpdb->replace(EZEV_Operations_DB::table('chargers'), [
+    'charger_id' => $testLegacyCharger,
+    'station_id' => 'EZEV-LEGACY-STATION',
+    'connector_type' => 'CCS2',
+    'max_power_kw' => 120,
+    'status' => 'available',
+    'updated_at' => current_time('mysql', true),
+]);
+update_option('ezevo_db_version', '4.0.1');
+EZEV_Operations_DB::maybe_upgrade();
+assertCheck("Legacy 4.0.1 is recognized and upgraded to 1.1.0", get_option('ezevo_db_version') === '1.1.0');
+$migratedConn = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . EZEV_Operations_DB::table('connectors') . " WHERE charger_id=%s", $testLegacyCharger), ARRAY_A);
+assertCheck("Legacy charger connector was successfully migrated into connectors table", !empty($migratedConn) && $migratedConn['charger_id'] === $testLegacyCharger);
+
 $expectedTables = [
     'ezev_chargers',
     'ezev_connectors',
@@ -72,6 +88,7 @@ $expectedTables = [
     'ezev_maintenance',
     'ezev_integrations',
     'ezev_sync_logs',
+    'ezev_webhook_receipts',
 ];
 foreach ($expectedTables as $t) {
     $full = $wpdb->prefix . $t;
@@ -231,23 +248,25 @@ wp_set_current_user(0);
 $authRes = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
 assertCheck("Unauthenticated GET /overview returns 401", $authRes->get_status() === 401);
 
-// 2. Customer -> 403
+// 2. Customer -> 403 (Forbidden from reading operations)
 $custUser = getOrCreateUser('test_cust_matrix', 'ezev_customer');
 wp_set_current_user($custUser->ID);
 $resCust = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
-assertCheck("Customer GET /overview returns 403", $resCust->get_status() === 403);
+assertCheck("Customer GET /overview returns 403 Forbidden", $resCust->get_status() === 403);
 
-// 3. Partner -> 403
+// 3. Partner (has ezev_view_operations) -> 200 OK, scoped
 $partUser = getOrCreateUser('test_partner_matrix', 'ezev_partner');
 wp_set_current_user($partUser->ID);
 $resPart = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
-assertCheck("Partner without ops cap GET /overview returns 403", $resPart->get_status() === 403);
+assertCheck("Partner with ops cap GET /overview returns 200 OK", $resPart->get_status() === 200);
+assertCheck("Partner scope is restricted", ($resPart->get_data()['scope'] ?? '') === 'restricted');
 
-// 4. Investor -> 403
+// 4. Investor (has ezev_view_operations) -> 200 OK, scoped
 $invUser = getOrCreateUser('test_investor_matrix', 'ezev_investor');
 wp_set_current_user($invUser->ID);
 $resInv = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/overview'));
-assertCheck("Investor without ops cap GET /overview returns 403", $resInv->get_status() === 403);
+assertCheck("Investor with ops cap GET /overview returns 200 OK", $resInv->get_status() === 200);
+assertCheck("Investor scope is restricted", ($resInv->get_data()['scope'] ?? '') === 'restricted');
 
 // 5. Internal Business (has ezev_view_internal, but NOT ezev_view_operations) -> MUST be 403
 $bizIntUser = getOrCreateUser('test_biz_internal_matrix', 'ezev_internal_business');
@@ -281,9 +300,21 @@ assertCheck("Administrator GET /overview returns 200", $resAdmin->get_status() =
 $adminData = $resAdmin->get_data();
 assertCheck("Administrator scope is 'all'", ($adminData['scope'] ?? '') === 'all');
 
+// Serializer DTO verification: ensure no internal numeric ID or provider_payload leaks
+$resChargersDto = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/chargers'));
+$sampleChargerDto = ($resChargersDto->get_data()['chargers'] ?? [])[0] ?? [];
+assertCheck("Charger DTO has charger_id", !empty($sampleChargerDto['charger_id']));
+assertCheck("Charger DTO does NOT expose numeric ID", !array_key_exists('id', $sampleChargerDto));
+
+$resSessionsDto = rest_do_request(new WP_REST_Request('GET', '/ezev-ops/v1/sessions'));
+$sampleSessionDto = ($resSessionsDto->get_data()['sessions'] ?? [])[0] ?? [];
+assertCheck("Session DTO has session_id", !empty($sampleSessionDto['session_id']));
+assertCheck("Session DTO does NOT expose numeric ID", !array_key_exists('id', $sampleSessionDto));
+assertCheck("Session DTO does NOT expose provider_payload", !array_key_exists('provider_payload', $sampleSessionDto));
+
 // 10. Scoped Business Site Manager test
 $scopedStation = 'EZEV-VN-DEMO-001';
-$scopedUser = getOrCreateUser('test_scoped_sitemanager', 'ezev_business', ['ezev_view_operations']);
+$scopedUser = getOrCreateUser('test_scoped_sitemanager', 'ezev_business');
 
 // Assign user to organization and site in Core DB
 $orgTable = EZEV_Core_DB::table('organizations');
@@ -343,8 +374,25 @@ foreach ($chargersList as $ch) {
 assertCheck("Scoped user chargers exclusively match assigned station ($scopedStation)", !empty($chargersList) && $allMatchScope);
 
 echo "\n=== [TEST GROUP 6] True Webhook Replay Protection ===\n";
-$webhookSecret = 'gate_test_super_secret_webhook_key';
+// Create integration WITHOUT secret to specifically test missing_secret
 $integrationTable = EZEV_Operations_DB::table('integrations');
+$wpdb->insert($integrationTable, [
+    'name' => 'Secretless Test Provider',
+    'provider_type' => 'generic_http',
+    'environment' => 'sandbox',
+    'auth_type' => 'none',
+    'webhook_secret_enc' => '', // NO SECRET
+    'enabled' => 1,
+    'created_at' => current_time('mysql', true),
+    'updated_at' => current_time('mysql', true),
+]);
+$secretlessId = (int) $wpdb->insert_id;
+
+$reqMissingSecret = new WP_REST_Request('POST', "/ezev-ops/v1/webhook/$secretlessId");
+$resMissingSecret = rest_do_request($reqMissingSecret);
+assertCheck("Request to integration without secret returns 401 missing_secret", $resMissingSecret->get_status() === 401 && ($resMissingSecret->get_data()['code'] ?? '') === 'missing_secret');
+
+$webhookSecret = 'gate_test_super_secret_webhook_key';
 $wpdb->insert($integrationTable, [
     'name' => 'Gate 2 Test Provider',
     'provider_type' => 'generic_http',
@@ -356,6 +404,20 @@ $wpdb->insert($integrationTable, [
     'updated_at' => current_time('mysql', true),
 ]);
 $integrationId = (int) $wpdb->insert_id;
+
+// Also create a second integration with secret to test cross-integration event collision resistance
+$wpdb->insert($integrationTable, [
+    'name' => 'Second Provider For Collision Test',
+    'provider_type' => 'generic_http',
+    'environment' => 'sandbox',
+    'auth_type' => 'bearer',
+    'webhook_secret_enc' => EZEV_Operations_Secrets::encrypt($webhookSecret),
+    'enabled' => 1,
+    'created_at' => current_time('mysql', true),
+    'updated_at' => current_time('mysql', true),
+]);
+$secondIntegrationId = (int) $wpdb->insert_id;
+
 $testPayload = json_encode(['event' => 'charger.status_change', 'status' => 'charging', 'seq' => wp_rand(1000, 9999)]);
 
 // 1. Missing secret / unsigned
@@ -403,6 +465,15 @@ $reqValid2->set_header('x-ezev-event-id', $eventId);
 $reqValid2->set_body($testPayload);
 $resDup = rest_do_request($reqValid2);
 assertCheck("Duplicate valid webhook delivery rejected with 409 duplicate_webhook", $resDup->get_status() === 409);
+
+// 7. Same event_id sent to DIFFERENT integration_id MUST be accepted (no cross-integration collision)
+$reqValidOtherIntegration = new WP_REST_Request('POST', "/ezev-ops/v1/webhook/$secondIntegrationId");
+$reqValidOtherIntegration->set_header('x-ezev-timestamp', (string)$currentTs);
+$reqValidOtherIntegration->set_header('x-ezev-signature', $validSig);
+$reqValidOtherIntegration->set_header('x-ezev-event-id', $eventId);
+$reqValidOtherIntegration->set_body($testPayload);
+$resOtherIntegration = rest_do_request($reqValidOtherIntegration);
+assertCheck("Same event_id delivered to different integration is accepted (no collision)", $resOtherIntegration->get_status() === 200);
 
 echo "\n==========================================\n";
 echo "SUMMARY: {$totalChecks} checks, {$failedChecks} failures.\n";

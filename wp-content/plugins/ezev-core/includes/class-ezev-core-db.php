@@ -114,6 +114,7 @@ final class EZEV_Core_DB {
         foreach ($sql as $statement) { dbDelta($statement); }
         self::backfill_business_ids();
         update_option('ezev_core_db_version', EZEV_CORE_DB_VERSION, false);
+        EZEV_Core_Roles::install();
     }
 
     public static function maybe_upgrade(): void {

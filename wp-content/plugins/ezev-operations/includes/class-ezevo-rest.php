@@ -91,6 +91,85 @@ final class EZEV_Operations_REST {
         ]);
     }
 
+    public static function serialize_charger(array $r): array {
+        return [
+            'charger_id' => (string) ($r['charger_id'] ?? ''),
+            'station_id' => (string) ($r['station_id'] ?? ''),
+            'connector_id' => (string) ($r['connector_id'] ?? ''),
+            'connector_type' => (string) ($r['connector_type'] ?? 'CCS2'),
+            'max_power_kw' => (float) ($r['max_power_kw'] ?? 0),
+            'status' => (string) ($r['status'] ?? 'available'),
+            'current_power_kw' => (float) ($r['current_power_kw'] ?? 0),
+            'serial_number' => (string) ($r['serial_number'] ?? ''),
+            'firmware' => (string) ($r['firmware'] ?? ''),
+            'last_seen' => (string) ($r['last_seen'] ?? ''),
+            'provider' => (string) ($r['provider'] ?? 'manual'),
+            'updated_at' => (string) ($r['updated_at'] ?? ''),
+        ];
+    }
+
+    public static function serialize_connector(array $r): array {
+        return [
+            'connector_id' => (string) ($r['connector_id'] ?? ''),
+            'charger_id' => (string) ($r['charger_id'] ?? ''),
+            'station_id' => (string) ($r['station_id'] ?? ''),
+            'connector_type' => (string) ($r['connector_type'] ?? 'CCS2'),
+            'max_power_kw' => (float) ($r['max_power_kw'] ?? 0),
+            'status' => (string) ($r['status'] ?? 'available'),
+            'current_power_kw' => (float) ($r['current_power_kw'] ?? 0),
+            'last_seen' => (string) ($r['last_seen'] ?? ''),
+            'provider' => (string) ($r['provider'] ?? 'manual'),
+            'updated_at' => (string) ($r['updated_at'] ?? ''),
+        ];
+    }
+
+    public static function serialize_session(array $r): array {
+        return [
+            'session_id' => (string) ($r['session_id'] ?? ''),
+            'station_id' => (string) ($r['station_id'] ?? ''),
+            'charger_id' => (string) ($r['charger_id'] ?? ''),
+            'connector_id' => (string) ($r['connector_id'] ?? ''),
+            'user_ref' => (string) ($r['user_ref'] ?? ''),
+            'started_at' => (string) ($r['started_at'] ?? ''),
+            'ended_at' => !empty($r['ended_at']) ? (string) $r['ended_at'] : null,
+            'duration_seconds' => (int) ($r['duration_seconds'] ?? 0),
+            'energy_kwh' => (float) ($r['energy_kwh'] ?? 0),
+            'status' => (string) ($r['status'] ?? 'completed'),
+            'provider' => (string) ($r['provider'] ?? 'manual'),
+        ];
+    }
+
+    public static function serialize_energy(array $r): array {
+        return [
+            'station_id' => (string) ($r['station_id'] ?? ''),
+            'recorded_at' => (string) ($r['recorded_at'] ?? ''),
+            'grid_kwh' => (float) ($r['grid_kwh'] ?? 0),
+            'ev_kwh' => (float) ($r['ev_kwh'] ?? 0),
+            'solar_kwh' => (float) ($r['solar_kwh'] ?? 0),
+            'bess_charge_kwh' => (float) ($r['bess_charge_kwh'] ?? 0),
+            'bess_discharge_kwh' => (float) ($r['bess_discharge_kwh'] ?? 0),
+            'peak_kw' => (float) ($r['peak_kw'] ?? 0),
+            'provider' => (string) ($r['provider'] ?? 'manual'),
+            'provider_record_id' => !empty($r['provider_record_id']) ? (string) $r['provider_record_id'] : null,
+        ];
+    }
+
+    public static function serialize_alert(array $r): array {
+        return [
+            'alert_id' => (string) ($r['alert_id'] ?? ''),
+            'station_id' => (string) ($r['station_id'] ?? ''),
+            'charger_id' => (string) ($r['charger_id'] ?? ''),
+            'severity' => (string) ($r['severity'] ?? 'medium'),
+            'code' => (string) ($r['code'] ?? ''),
+            'title' => (string) ($r['title'] ?? ''),
+            'message' => (string) ($r['message'] ?? ''),
+            'status' => (string) ($r['status'] ?? 'open'),
+            'occurred_at' => (string) ($r['occurred_at'] ?? ''),
+            'acknowledged_at' => !empty($r['acknowledged_at']) ? (string) $r['acknowledged_at'] : null,
+            'resolved_at' => !empty($r['resolved_at']) ? (string) $r['resolved_at'] : null,
+        ];
+    }
+
     public static function chargers(): WP_REST_Response {
         global $wpdb;
         $allowed = self::allowed_station_keys();
@@ -102,7 +181,7 @@ final class EZEV_Operations_REST {
             $escaped = implode("','", array_map('esc_sql', $allowed));
             $rows = $wpdb->get_results("SELECT * FROM " . EZEV_Operations_DB::table('chargers') . " WHERE station_id IN ('$escaped') ORDER BY station_id, charger_id LIMIT 500", ARRAY_A) ?: [];
         }
-        return rest_ensure_response(['chargers' => $rows]);
+        return rest_ensure_response(['chargers' => array_map([self::class, 'serialize_charger'], $rows)]);
     }
 
     public static function connectors(): WP_REST_Response {
@@ -116,7 +195,7 @@ final class EZEV_Operations_REST {
             $escaped = implode("','", array_map('esc_sql', $allowed));
             $rows = $wpdb->get_results("SELECT * FROM " . EZEV_Operations_DB::table('connectors') . " WHERE station_id IN ('$escaped') ORDER BY station_id, charger_id, connector_id LIMIT 500", ARRAY_A) ?: [];
         }
-        return rest_ensure_response(['connectors' => $rows]);
+        return rest_ensure_response(['connectors' => array_map([self::class, 'serialize_connector'], $rows)]);
     }
 
     public static function sessions(): WP_REST_Response {
@@ -130,7 +209,7 @@ final class EZEV_Operations_REST {
             $escaped = implode("','", array_map('esc_sql', $allowed));
             $rows = $wpdb->get_results("SELECT * FROM " . EZEV_Operations_DB::table('sessions') . " WHERE station_id IN ('$escaped') ORDER BY started_at DESC LIMIT 500", ARRAY_A) ?: [];
         }
-        return rest_ensure_response(['sessions' => $rows]);
+        return rest_ensure_response(['sessions' => array_map([self::class, 'serialize_session'], $rows)]);
     }
 
     public static function energy(): WP_REST_Response {
@@ -144,7 +223,7 @@ final class EZEV_Operations_REST {
             $escaped = implode("','", array_map('esc_sql', $allowed));
             $rows = $wpdb->get_results("SELECT * FROM " . EZEV_Operations_DB::table('energy') . " WHERE station_id IN ('$escaped') ORDER BY recorded_at DESC LIMIT 500", ARRAY_A) ?: [];
         }
-        return rest_ensure_response(['energy' => $rows]);
+        return rest_ensure_response(['energy' => array_map([self::class, 'serialize_energy'], $rows)]);
     }
 
     public static function alerts(): WP_REST_Response {
@@ -158,10 +237,11 @@ final class EZEV_Operations_REST {
             $escaped = implode("','", array_map('esc_sql', $allowed));
             $rows = $wpdb->get_results("SELECT * FROM " . EZEV_Operations_DB::table('alerts') . " WHERE station_id IN ('$escaped') ORDER BY occurred_at DESC LIMIT 500", ARRAY_A) ?: [];
         }
-        return rest_ensure_response(['alerts' => $rows]);
+        return rest_ensure_response(['alerts' => array_map([self::class, 'serialize_alert'], $rows)]);
     }
 
     public static function webhook(WP_REST_Request $request): WP_REST_Response|WP_Error {
+        global $wpdb;
         $id = absint($request['integration_id']);
         $integration = EZEV_Operations_Provider_Manager::integration($id);
         if (!$integration) {
@@ -187,14 +267,28 @@ final class EZEV_Operations_REST {
             return new WP_Error('invalid_signature', 'Invalid webhook signature.', ['status' => 401]);
         }
 
-        // True Webhook Replay Protection: Fingerprint / Event Deduplication with TTL
+        // True Webhook Replay Protection: Atomic deduplication scoped to integration_id + (event_id OR payload hash)
         $event_id = (string) ($request->get_header('x-ezev-event-id') ?? '');
-        $fingerprint = $event_id !== '' ? 'evt_' . sanitize_key($event_id) : 'fp_' . hash('sha256', $id . '|' . $ts . '|' . $raw);
-        $transient_key = 'ezevo_wh_' . substr(hash('sha256', $fingerprint), 0, 32);
-        if (get_transient($transient_key)) {
+        $dedup_key = $event_id !== '' ? 'evt_' . $event_id : 'fp_' . $ts . '_' . hash('sha256', $raw);
+        $dedup_hash = hash('sha256', $id . '|' . $dedup_key);
+
+        // Atomic insert into webhook_receipts table
+        $receipt_table = EZEV_Operations_DB::table('webhook_receipts');
+        $inserted = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO $receipt_table (integration_id, dedup_hash, event_id, created_at) VALUES (%d, %s, %s, %s)",
+            $id,
+            $dedup_hash,
+            $event_id ?: null,
+            current_time('mysql', true)
+        ));
+
+        // If duplicate key exists, INSERT IGNORE returns 0 rows affected
+        if ($inserted === 0) {
             return new WP_Error('duplicate_webhook', 'Duplicate webhook delivery rejected.', ['status' => 409]);
         }
-        set_transient($transient_key, 1, 600); // 10-minute TTL
+
+        // Fallback transient cache with 10-minute TTL for secondary fast check
+        set_transient('ezevo_wh_' . substr($dedup_hash, 0, 32), 1, 600);
 
         EZEV_Operations_DB::log('webhook_received', 'Webhook verified and received from ' . $integration['name'], 'info', $id, ['payload' => json_decode($raw, true)]);
         return rest_ensure_response(['received' => true]);

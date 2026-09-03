@@ -56,6 +56,11 @@ final class EZEV_Operations_DB {
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, integration_id BIGINT UNSIGNED NULL, level VARCHAR(20) NOT NULL DEFAULT 'info', event VARCHAR(120) NOT NULL,
             message TEXT NULL, context_json LONGTEXT NULL, created_at DATETIME NOT NULL, PRIMARY KEY(id), KEY integration_id(integration_id), KEY created_at(created_at), KEY level(level)
         ) $c;";
+        $sql[]="CREATE TABLE ".self::table('webhook_receipts')." (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, integration_id BIGINT UNSIGNED NOT NULL, dedup_hash VARCHAR(64) NOT NULL,
+            event_id VARCHAR(191) NULL, created_at DATETIME NOT NULL,
+            PRIMARY KEY(id), UNIQUE KEY dedup_hash(dedup_hash), KEY integration_id(integration_id), KEY created_at(created_at)
+        ) $c;";
         foreach($sql as $s){dbDelta($s);}
         self::ensure_schema_columns();
         self::migrate_legacy_connectors();
@@ -88,7 +93,8 @@ final class EZEV_Operations_DB {
     public static function maybe_upgrade(): void {
         $installed = (string) get_option('ezevo_db_version', '0');
         $target = defined('EZEVO_DB_VERSION') ? EZEVO_DB_VERSION : '1.1.0';
-        $legacy_versions = ['0', '1.0.0', '1.0.1', '1.0.2', '1.0.3'];
+        // Explicit known legacy versions from before dedicated DB versioning was split from plugin version
+        $legacy_versions = ['0', '1.0.0', '1.0.1', '1.0.2', '1.0.3', '4.0.0', '4.0.1'];
         $needs_upgrade = version_compare($installed, $target, '<') || in_array($installed, $legacy_versions, true);
         if ($needs_upgrade) {
             self::install();

@@ -11,9 +11,9 @@ final class EZEV_Core_Roles {
     public static function install(): void {
         $roles = [
             'ezev_customer' => ['EZEV Customer', ['read' => true]],
-            'ezev_business' => ['EZEV Business User', ['read' => true]],
-            'ezev_partner' => ['EZEV Partner', ['read' => true]],
-            'ezev_investor' => ['EZEV Investor', ['read' => true]],
+            'ezev_business' => ['EZEV Business User', ['read' => true, 'ezev_view_core' => true, 'ezev_view_operations' => true]],
+            'ezev_partner' => ['EZEV Partner', ['read' => true, 'ezev_view_core' => true, 'ezev_view_operations' => true]],
+            'ezev_investor' => ['EZEV Investor', ['read' => true, 'ezev_view_core' => true, 'ezev_view_operations' => true]],
             'ezev_internal_ops' => ['EZEV Internal - Operations', ['read' => true, 'ezev_view_core' => true, 'ezev_view_internal' => true, 'ezev_view_operations' => true]],
             'ezev_internal_technical' => ['EZEV Internal - Technical', ['read' => true, 'ezev_view_core' => true, 'ezev_view_internal' => true, 'ezev_view_operations' => true]],
             'ezev_internal_business' => ['EZEV Internal - Business', ['read' => true, 'ezev_view_core' => true, 'ezev_view_internal' => true, 'ezev_manage_organizations' => true]],
